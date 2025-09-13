@@ -1,6 +1,5 @@
-// src/controllers/user.controller.ts
 import type { Request, Response, NextFunction } from "express";
-import { CreateUserSchema, UpdateUserSchema } from "../schemas/user.schema.js";
+import type { CreateUserDto, UpdateUserDto } from "../schemas/user.schema.js";
 import * as svc from "../services/user.service.js";
 
 export async function listUsers(_req: Request, res: Response, next: NextFunction) {
@@ -24,13 +23,8 @@ export async function getUserById(req: Request, res: Response, next: NextFunctio
 
 export async function createUser(req: Request, res: Response, next: NextFunction) {
     try {
-        const parsed = CreateUserSchema.safeParse(req.body);
-        if (!parsed.success)
-            return res
-                .status(400)
-                .json({ message: "Invalid body", errors: parsed.error.flatten() });
-
-        const user = await svc.createUser(parsed.data);
+        const dto = req.body as CreateUserDto; // already validated by middleware
+        const user = await svc.createUser(dto);
         res.status(201).json(user);
     } catch (err) {
         next(err);
@@ -39,13 +33,8 @@ export async function createUser(req: Request, res: Response, next: NextFunction
 
 export async function updateUser(req: Request, res: Response, next: NextFunction) {
     try {
-        const parsed = UpdateUserSchema.safeParse(req.body);
-        if (!parsed.success)
-            return res
-                .status(400)
-                .json({ message: "Invalid body", errors: parsed.error.flatten() });
-
-        const user = await svc.updateUser(String(req.params.id), parsed.data);
+        const dto = req.body as UpdateUserDto; // already validated by middleware
+        const user = await svc.updateUser(String(req.params.id), dto);
         res.json(user);
     } catch (err) {
         next(err);

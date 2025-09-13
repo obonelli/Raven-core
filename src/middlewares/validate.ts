@@ -1,31 +1,23 @@
-import type { RequestHandler } from 'express';
-import type { ZodObject, ZodRawShape } from 'zod';
+import type { RequestHandler } from "express";
+import type { ZodTypeAny } from "zod";
 
-export function validate(schema: ZodObject<ZodRawShape>): RequestHandler {
+/**
+ * Validates only req.body against a Zod schema.
+ * On failure → 400 with error.flatten().
+ * On success → replaces req.body with parsed data.
+ */
+export function validateBody(schema: ZodTypeAny): RequestHandler {
     return (req, res, next) => {
-        const result = schema.safeParse({
-            body: req.body,
-            params: req.params,
-            query: req.query,
-        });
+        const parsed = schema.safeParse(req.body);
 
-        if (!result.success) {
+        if (!parsed.success) {
             return res.status(400).json({
-                error: 'ValidationError',
-                details: result.error.flatten(),
+                error: "ValidationError",
+                details: parsed.error.flatten(),
             });
         }
 
-        const { body, params, query } = result.data as {
-            body: typeof req.body;
-            params: typeof req.params;
-            query: typeof req.query;
-        };
-
-        req.body = body;
-        req.params = params;
-        req.query = query;
-
+        req.body = parsed.data; // sanitized & typed
         next();
     };
 }
