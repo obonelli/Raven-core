@@ -1,0 +1,38 @@
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+
+# --- Build outputs ---
+dist/
+build/
+coverage/
+.tmp/
+
+# --- TypeScript ---
+*.tsbuildinfo
+
+# --- Logs ---
+*.log
+logs
+*.csv
+
+# --- Env & secrets ---
+.env
+.env.*.local
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Tests ---
+coverage/
+jest-cache/
+jest-results/
