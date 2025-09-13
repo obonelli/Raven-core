@@ -1,20 +1,30 @@
-// src/middlewares/validate.ts
 import type { RequestHandler } from 'express';
-import type { ZodType } from 'zod';
+import type { ZodObject, ZodRawShape } from 'zod';
 
-export function validate(schema: ZodType<unknown>): RequestHandler {
+export function validate(schema: ZodObject<ZodRawShape>): RequestHandler {
     return (req, res, next) => {
-        const parsed = schema.safeParse({
+        const result = schema.safeParse({
             body: req.body,
             params: req.params,
             query: req.query,
         });
 
-        if (!parsed.success) {
-            return res
-                .status(400)
-                .json({ error: 'ValidationError', details: parsed.error.flatten() });
+        if (!result.success) {
+            return res.status(400).json({
+                error: 'ValidationError',
+                details: result.error.flatten(),
+            });
         }
+
+        const { body, params, query } = result.data as {
+            body: typeof req.body;
+            params: typeof req.params;
+            query: typeof req.query;
+        };
+
+        req.body = body;
+        req.params = params;
+        req.query = query;
 
         next();
     };
