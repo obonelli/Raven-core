@@ -46,4 +46,5 @@ NODE_ENV=development
 
 ## 📖 Documentation
 Full technical documentation is maintained in Confluence:  
-👉 [Raven-core Confluence](https://confluence.tu-org.com/display/RAVEN/raven-core)
+👉 [Raven-core Confluence](https://tusitio.atlassian.net/wiki/spaces/RAVEN/pages/ID/raven-core)
+
