@@ -3,7 +3,7 @@ import type { RequestHandler } from "express";
 import type { ZodTypeAny, ZodObject, ZodRawShape } from "zod";
 
 /**
- * Valida solo req.body contra un schema de body (zod).
+ * Validate only req.body against schema.
  */
 export function validateBody(schema: ZodTypeAny): RequestHandler {
     return (req, res, next) => {
@@ -20,7 +20,7 @@ export function validateBody(schema: ZodTypeAny): RequestHandler {
 }
 
 /**
- * Valida req.params contra un schema de params (zod).
+ * Validate req.params against schema.
  */
 export function validateParams(schema: ZodObject<ZodRawShape>): RequestHandler {
     return (req, res, next) => {
@@ -37,9 +37,9 @@ export function validateParams(schema: ZodObject<ZodRawShape>): RequestHandler {
 }
 
 /**
- * Validador "combinado" para schemas con { body, params, query }.
- * Útil si tus schemas están definidos como:
- *   z.object({ body: z.object(...), params: z.object(...), query: z.object(...) })
+ * Combined validator for { body, params, query }.
+ * NOTE: In Express 5 you cannot reassign req.query (it's a getter).
+ * We put validated query into res.locals.validatedQuery instead.
  */
 export function validate(schema: ZodObject<any>): RequestHandler {
     return (req, res, next) => {
@@ -56,12 +56,14 @@ export function validate(schema: ZodObject<any>): RequestHandler {
             });
         }
 
-        // Sobrescribimos con los datos parseados (ya saneados)
         if (parsed.data?.body !== undefined) req.body = parsed.data.body;
-        if (parsed.data?.params !== undefined)
+        if (parsed.data?.params !== undefined) {
             req.params = parsed.data.params as import("express-serve-static-core").ParamsDictionary;
-        if (parsed.data?.query !== undefined)
-            req.query = parsed.data.query as any;
+        }
+        if (parsed.data?.query !== undefined) {
+            // Do not reassign req.query in Express 5
+            res.locals.validatedQuery = parsed.data.query;
+        }
 
         next();
     };

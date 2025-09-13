@@ -7,6 +7,9 @@ import { usersSchemas } from './components/users.schemas.js';
 import { userDetailsPaths } from './paths/userDetails.js';
 import { userDetailsSchemas } from './components/userDetails.schemas.js';
 
+import { healthPaths } from './paths/health.js';
+import { healthSchemas } from './components/health.schemas.js';
+
 export function buildOpenAPISpec(baseUrl: string) {
     const spec = {
         openapi: '3.0.3',
@@ -17,33 +20,13 @@ export function buildOpenAPISpec(baseUrl: string) {
         },
         servers: [{ url: baseUrl }],
         tags: [
+            { name: 'Health', description: 'Service health checks' },
             { name: 'Users', description: 'User CRUD' },
             { name: 'UserDetails', description: 'Additional details for a user (MySQL)' },
         ],
         paths: {
-            '/health': {
-                get: {
-                    summary: 'Health check',
-                    responses: {
-                        '200': {
-                            description: 'API is healthy',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        type: 'object',
-                                        required: ['ok', 'env'],
-                                        properties: {
-                                            ok: { type: 'boolean' },
-                                            env: { type: 'string' },
-                                        },
-                                    },
-                                    examples: { ok: { value: { ok: true, env: 'development' } } },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
+            // --- Health (modular) ---
+            ...healthPaths,
 
             // --- Users (modular) ---
             ...usersPaths,
@@ -60,6 +43,9 @@ export function buildOpenAPISpec(baseUrl: string) {
                     properties: { error: { type: 'string' } },
                     example: { error: 'Something went wrong' },
                 },
+
+                // Health (modular)
+                ...healthSchemas,
 
                 // Users (modular)
                 ...usersSchemas,

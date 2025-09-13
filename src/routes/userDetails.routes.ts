@@ -1,8 +1,8 @@
 // src/routes/userDetails.routes.ts
 import { Router } from 'express';
 import { validate } from '../middlewares/validate';
-import { CreateUserDetailsSchema, PatchUserDetailsSchema } from '../schemas/userDetails.schema.js';
-import * as controller from '../controllers/userDetails.controller.js';
+import { CreateUserDetailsSchema, PatchUserDetailsSchema } from '../schemas/userDetails.schema';
+import * as controller from '../controllers/userDetails.controller';
 
 const r = Router({ mergeParams: true });
 
