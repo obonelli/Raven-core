@@ -36,3 +36,5 @@ Thumbs.db
 coverage/
 jest-cache/
 jest-results/
+
+/src/generated/prisma

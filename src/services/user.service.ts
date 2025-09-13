@@ -1,5 +1,5 @@
 // src/services/user.service.ts
-import * as repo from "../repositories/user.repo.js";
+import * as repo from "../repositories/user.dynamo.repo.js";
 import type { User } from "../models/user.model.js";
 import type { CreateUserDto, UpdateUserDto } from "../schemas/user.schema.js";
 
