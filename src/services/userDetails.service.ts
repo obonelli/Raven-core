@@ -3,13 +3,13 @@ import * as detailsRepo from "../repositories/userDetails.mysql.repo.js";
 import type { CreateUserDetailsDto, PatchUserDetailsDto } from "../schemas/userDetails.schema.js";
 import type { UserDetails } from "../models/userDetails.model.js";
 import { getJSON, setJSON, delKey } from "../lib/cache.js";
-import { k } from "../config/redis.js";
+import { buildCacheKey } from "../config/redis.js";
 
 export async function getForUser(userId: string): Promise<UserDetails | null> {
     const user = await usersRepo.getById(userId);
     if (!user) return null;
 
-    const key = k("userDetails", userId);
+    const key = buildCacheKey("userDetails", userId);
     const cached = await getJSON<UserDetails>(key);
     if (cached) return cached;
 
@@ -34,7 +34,7 @@ export async function createForUser(userId: string, dto: CreateUserDetailsDto): 
     };
 
     const created = await detailsRepo.create(userId, payload);
-    await setJSON(k("userDetails", userId), created);
+    await setJSON(buildCacheKey("userDetails", userId), created);
     return created;
 }
 
@@ -53,7 +53,7 @@ export async function patchForUser(userId: string, dto: PatchUserDetailsDto): Pr
     if ("zip" in dto) data.zip = dto.zip ?? null;
 
     const updated = await detailsRepo.update(userId, data);
-    await setJSON(k("userDetails", userId), updated);
+    await setJSON(buildCacheKey("userDetails", userId), updated);
     return updated;
 }
 
@@ -65,5 +65,5 @@ export async function deleteForUser(userId: string): Promise<void> {
     if (!existing) throw Object.assign(new Error("Details not found"), { status: 404 });
 
     await detailsRepo.remove(userId);
-    await delKey(k("userDetails", userId));
+    await delKey(buildCacheKey("userDetails", userId));
 }

@@ -5,26 +5,30 @@ import { Redis } from '@upstash/redis';
 const clean = (v?: string) =>
     v?.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
 
+// Env vars
 const REDIS_URL = clean(process.env.UPSTASH_REDIS_REST_URL);
 const REDIS_TOKEN = clean(process.env.UPSTASH_REDIS_REST_TOKEN);
 
-export const REDIS_NS = (process.env.REDIS_NAMESPACE ?? 'myapi').trim();
+export const REDIS_NAMESPACE = (process.env.REDIS_NAMESPACE ?? 'myapi').trim();
 export const REDIS_TTL = Number(process.env.REDIS_TTL_SECONDS ?? 300);
 
 if (!REDIS_URL || !REDIS_TOKEN) {
     throw new Error('Missing Redis envs: UPSTASH_REDIS_REST_URL / _TOKEN');
 }
 
+// Redis client
 export const redis = new Redis({
-    url: REDIS_URL!,
-    token: REDIS_TOKEN!,
+    url: REDIS_URL,
+    token: REDIS_TOKEN,
     automaticDeserialization: true,
 });
 
-export const k = (...parts: (string | number | null | undefined)[]) =>
-    [REDIS_NS, ...parts.filter(Boolean)].join(':');
+// Build cache key with namespace
+export function buildCacheKey(...parts: (string | number | null | undefined)[]) {
+    return [REDIS_NAMESPACE, ...parts.filter(Boolean)].join(':');
+}
 
-/** Health: first try GET (real connectivity). PING is optional. */
+/** Health check: GET + optional PING */
 export async function rPing(timeoutMs = 1500): Promise<boolean> {
     const to = new Promise<never>((_, rej) =>
         setTimeout(() => rej(new Error('Redis timeout')), timeoutMs)
@@ -50,13 +54,13 @@ export async function rPing(timeoutMs = 1500): Promise<boolean> {
 }
 
 export async function rSet<T>(key: string, value: T, ttlSec = REDIS_TTL) {
-    return redis.set(k(key), value as any, { ex: ttlSec });
+    return redis.set(buildCacheKey(key), value as any, { ex: ttlSec });
 }
 export async function rGet<T = unknown>(key: string) {
-    return redis.get<T>(k(key));
+    return redis.get<T>(buildCacheKey(key));
 }
 export async function rDel(key: string) {
-    return redis.del(k(key));
+    return redis.del(buildCacheKey(key));
 }
 
 /** Self-check on startup (dev only) */
@@ -70,7 +74,7 @@ if (process.env.NODE_ENV !== 'production') {
                 '[redis] health:',
                 ok,
                 '| ns:',
-                REDIS_NS,
+                REDIS_NAMESPACE,
                 '| get __boot__:',
                 Boolean(v)
             );
