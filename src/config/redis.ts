@@ -23,14 +23,14 @@ export const redis = new Redis({
 export const k = (...parts: (string | number | null | undefined)[]) =>
     [REDIS_NS, ...parts.filter(Boolean)].join(':');
 
-/** Health: primero prueba GET (conectividad real). PING es opcional. */
+/** Health: first try GET (real connectivity). PING is optional. */
 export async function rPing(timeoutMs = 1500): Promise<boolean> {
     const to = new Promise<never>((_, rej) =>
         setTimeout(() => rej(new Error('Redis timeout')), timeoutMs)
     );
 
     try {
-        // Debe funcionar aun con token read-only
+        // Must work even with read-only token
         await Promise.race([redis.get('__health__'), to]);
     } catch (e) {
         if (process.env.NODE_ENV !== 'production') {
@@ -40,7 +40,7 @@ export async function rPing(timeoutMs = 1500): Promise<boolean> {
     }
 
     try {
-        // Si falla por permisos, lo ignoramos: ya comprobamos conectividad
+        // If it fails due to permissions, ignore it: connectivity was already verified
         await Promise.race([redis.ping(), to]);
     } catch (e) {
         if (process.env.NODE_ENV !== 'production') {
@@ -60,7 +60,7 @@ export async function rDel(key: string) {
     return redis.del(k(key));
 }
 
-/** Autotest al arrancar (solo dev): deja trazas claras en consola */
+/** Autotest on startup (dev only): leaves clear traces in console */
 if (process.env.NODE_ENV !== 'production') {
     (async () => {
         try {

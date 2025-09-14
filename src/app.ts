@@ -16,6 +16,9 @@ import type { SwaggerThemeName } from 'swagger-themes';
 import { ensureUsersTable } from './config/dynamo-admin.js';
 import { DDB_USERS_TABLE } from './config/dynamo.js';
 
+// ✅ NEW: auth routes
+import authRoutes from './routes/auth.routes.js';
+
 const app = express();
 app.use(express.json());
 
@@ -46,7 +49,13 @@ app.use(
 );
 
 app.get('/api-docs.json', (_req, res) => res.json(spec));
+
+// ✅ NEW: mount JWT auth endpoints
+app.use('/api/auth', authRoutes);
+
+// Existing API routes
 app.use('/api', routes);
+
 app.use(notFound);
 app.use(errorHandler);
 
