@@ -3,10 +3,6 @@ import type { Express, Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { SwaggerTheme } from 'swagger-themes';
 
-/**
- * Registers Swagger UI and exposes /api-docs.json.
- * Accepts any string as theme and casts internally.
- */
 export function registerSwaggerDocs(
     app: Express,
     spec: unknown,

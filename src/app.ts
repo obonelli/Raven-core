@@ -3,7 +3,6 @@ import 'dotenv/config';
 
 import express from 'express';
 import { env } from './config/env.js';
-import { logger } from './config/logger.js';
 import routes from './routes/index.js';
 import { notFound } from './middlewares/not-found.js';
 import { errorHandler } from './middlewares/error-handler.js';

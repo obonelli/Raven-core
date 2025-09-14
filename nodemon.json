@@ -2,6 +2,16 @@
     "watch": [
         "src"
     ],
-    "ext": "ts,js,json",
-    "exec": "tsx src/server.ts"
+    "ext": "ts,tsx,js,json",
+    "ignore": [
+        "dist/**",
+        "**/*.test.*",
+        "**/*.spec.*"
+    ],
+    "exec": "tsx src/server.ts",
+    "events": {
+        "start": "npm run -s lint || echo ESLint errors (non-blocking)",
+        "restart": "npm run -s lint || echo ESLint errors (non-blocking)"
+    },
+    "quiet": true
 }

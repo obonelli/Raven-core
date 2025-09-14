@@ -1,3 +1,4 @@
+// src/config/redis.ts
 import 'dotenv/config';
 import { Redis } from '@upstash/redis';
 
@@ -30,19 +31,17 @@ export async function rPing(timeoutMs = 1500): Promise<boolean> {
     );
 
     try {
-        // Must work even with read-only token
         await Promise.race([redis.get('__health__'), to]);
-    } catch (e) {
+    } catch {
         if (process.env.NODE_ENV !== 'production') {
-            console.error('[redis.get] connectivity/token error:', e);
+            console.error('[redis.get] connectivity/token error');
         }
         return false;
     }
 
     try {
-        // If it fails due to permissions, ignore it: connectivity was already verified
         await Promise.race([redis.ping(), to]);
-    } catch (e) {
+    } catch {
         if (process.env.NODE_ENV !== 'production') {
             console.warn('[redis.ping] blocked or unsupported, continuing…');
         }
@@ -60,17 +59,23 @@ export async function rDel(key: string) {
     return redis.del(k(key));
 }
 
-/** Autotest on startup (dev only): leaves clear traces in console */
+/** Self-check on startup (dev only) */
 if (process.env.NODE_ENV !== 'production') {
     (async () => {
         try {
             const ok = await rPing();
-            const testKey = k('__boot__');
             await rSet('__boot__', { t: Date.now() }, 60);
-            const v = await rGet<typeof testKey>('__boot__');
-            console.log('[redis] health:', ok, '| ns:', REDIS_NS, '| get __boot__:', Boolean(v));
-        } catch (e) {
-            console.error('[redis] startup check failed:', e);
+            const v = await rGet<{ t: number }>('__boot__');
+            console.log(
+                '[redis] health:',
+                ok,
+                '| ns:',
+                REDIS_NS,
+                '| get __boot__:',
+                Boolean(v)
+            );
+        } catch (err) {
+            console.error('[redis] startup check failed:', err);
         }
     })();
 }
