@@ -3,8 +3,8 @@ import { verifyJWT } from '../config/jwt.js';
 
 export type AuthUser = {
     sub: string;
-    email?: string; // may be omitted, but if present must be string
-    role?: string;  // same
+    email?: string;
+    role?: string;
 };
 
 declare module 'express-serve-static-core' {

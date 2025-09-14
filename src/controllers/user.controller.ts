@@ -23,20 +23,26 @@ export async function getUserById(req: Request, res: Response, next: NextFunctio
 
 export async function createUser(req: Request, res: Response, next: NextFunction) {
     try {
-        const dto = req.body as CreateUserDto; // already validated by middleware
+        const dto = req.body as CreateUserDto; // validated
         const user = await svc.createUser(dto);
         res.status(201).json(user);
-    } catch (err) {
+    } catch (err: any) {
+        if (err?.code === "EmailTaken") {
+            return res.status(409).json({ error: "EmailTaken", message: "Email already in use" });
+        }
         next(err);
     }
 }
 
 export async function updateUser(req: Request, res: Response, next: NextFunction) {
     try {
-        const dto = req.body as UpdateUserDto; // already validated by middleware
+        const dto = req.body as UpdateUserDto; // validated
         const user = await svc.updateUser(String(req.params.id), dto);
         res.json(user);
-    } catch (err) {
+    } catch (err: any) {
+        if (err?.code === "EmailTaken") {
+            return res.status(409).json({ error: "EmailTaken", message: "Email already in use" });
+        }
         next(err);
     }
 }
