@@ -43,4 +43,26 @@ export const healthPaths = {
             },
         },
     },
+
+    '/api/health/redis': {
+        get: {
+            tags: ['Health'],
+            summary: 'Redis health check',
+            responses: {
+                '200': {
+                    description: 'Redis is reachable',
+                    content: {
+                        'application/json': {
+                            schema: { $ref: '#/components/schemas/HealthStatus' },
+                            examples: { ok: { value: { ok: true, service: 'redis' } } },
+                        },
+                    },
+                },
+                '500': {
+                    description: 'Redis is unavailable',
+                    content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+                },
+            },
+        },
+    },
 };

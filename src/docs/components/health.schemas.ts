@@ -5,8 +5,12 @@ export const healthSchemas = {
         required: ['ok', 'service'],
         properties: {
             ok: { type: 'boolean' },
-            service: { type: 'string', enum: ['dynamo', 'mysql'] },
+            service: { type: 'string', enum: ['dynamo', 'mysql', 'redis'] },
         },
-        example: { ok: true, service: 'dynamo' },
+        examples: {
+            dynamo: { value: { ok: true, service: 'dynamo' } },
+            mysql: { value: { ok: true, service: 'mysql' } },
+            redis: { value: { ok: true, service: 'redis' } },
+        },
     },
 };
