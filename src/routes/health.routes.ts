@@ -1,16 +1,15 @@
-// src/routes/health.routes.ts
 import { Router } from 'express';
 import { ddb, DDB_USERS_TABLE } from '../config/dynamo.js';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { prisma } from '../config/prisma.js';
-import { redis } from '../config/redis.js';
+import { rPing } from '../config/redis.js'; // 👈 usar helper de config/redis
 
 const r = Router();
 
 // Health for DynamoDB
 r.get('/dynamo', async (_req, res, next) => {
     try {
-        // Lightweight operation (no need to fetch all)
+        // Operación ligera (no lee toda la tabla)
         await ddb.send(new ScanCommand({ TableName: DDB_USERS_TABLE, Limit: 1 }));
         res.json({ ok: true, service: 'dynamo' });
     } catch (err) {
@@ -28,12 +27,11 @@ r.get('/mysql', async (_req, res, next) => {
     }
 });
 
-// Health for Redis
+// Health for Redis (solo conectividad; no escribe)
 r.get('/redis', async (_req, res, next) => {
     try {
-        await redis.set('health:ping', '1', { ex: 5 });
-        const v = await redis.get('health:ping');
-        res.json({ ok: v === '1', service: 'redis' });
+        const ok = await rPing();
+        res.json({ ok, service: 'redis' });
     } catch (err) {
         next(err);
     }
