@@ -2,7 +2,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { k, rSet, rGet, rDel, REDIS_TTL } from '../config/redis';
+import { buildCacheKey, rSet, rGet, rDel, REDIS_TTL } from '../config/redis';
 import { signAccessToken, signRefreshToken, verifyJWT, REFRESH_EXPIRES_IN } from '../config/jwt';
 import * as usersRepo from '../repositories/user.dynamo.repo';
 
@@ -23,7 +23,7 @@ function toSeconds(span: string): number {
 }
 
 const REFRESH_TTL_SEC = toSeconds(REFRESH_EXPIRES_IN);
-const rtKey = (userId: string, jti: string) => k('rt', userId, jti);
+const refreshTokenKey = (userId: string, jti: string) => buildCacheKey('rt', userId, jti);
 
 // POST /api/auth/login
 export async function login(req: Request, res: Response, next: NextFunction) {
@@ -49,7 +49,6 @@ export async function login(req: Request, res: Response, next: NextFunction) {
             return res.status(401).json({ error: 'InvalidCredentials', message: 'Email or password is incorrect' });
         }
 
-        // Build payload while omitting undefined fields (for exactOptionalPropertyTypes)
         const base = {
             sub: String(user.userId),
             ...(user.email !== undefined ? { email: user.email } : {}),
@@ -60,7 +59,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         const accessToken = await signAccessToken(base);
         const refreshToken = await signRefreshToken({ ...base, jti });
 
-        await rSet(rtKey(String(user.userId), jti), true, Math.max(REFRESH_TTL_SEC, REDIS_TTL));
+        await rSet(refreshTokenKey(String(user.userId), jti), true, Math.max(REFRESH_TTL_SEC, REDIS_TTL));
 
         return res.json({
             user: { id: user.userId, email: user.email, role: (user as any).role ?? undefined },
@@ -82,13 +81,13 @@ export async function refresh(req: Request, res: Response, _next: NextFunction) 
             return res.status(401).json({ error: 'Unauthorized', message: 'Invalid refresh token' });
         }
 
-        const exists = await rGet<boolean>(rtKey(String(payload.sub), String(payload.jti)));
+        const exists = await rGet<boolean>(refreshTokenKey(String(payload.sub), String(payload.jti)));
         if (!exists) {
             return res.status(401).json({ error: 'Unauthorized', message: 'Refresh token is not active' });
         }
 
         // rotate
-        await rDel(rtKey(String(payload.sub), String(payload.jti)));
+        await rDel(refreshTokenKey(String(payload.sub), String(payload.jti)));
 
         const base = {
             sub: String(payload.sub),
@@ -100,7 +99,7 @@ export async function refresh(req: Request, res: Response, _next: NextFunction) 
         const accessToken = await signAccessToken(base);
         const newRefreshToken = await signRefreshToken({ ...base, jti: newJti });
 
-        await rSet(rtKey(String(payload.sub), newJti), true, Math.max(REFRESH_TTL_SEC, REDIS_TTL));
+        await rSet(refreshTokenKey(String(payload.sub), newJti), true, Math.max(REFRESH_TTL_SEC, REDIS_TTL));
 
         return res.json({ accessToken, refreshToken: newRefreshToken });
     } catch {
@@ -117,7 +116,7 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
         try {
             const payload = await verifyJWT<{ sub?: string; jti?: string; typ?: 'refresh' }>(refreshToken);
             if (payload.typ === 'refresh' && payload.sub && payload.jti) {
-                await rDel(rtKey(String(payload.sub), String(payload.jti)));
+                await rDel(refreshTokenKey(String(payload.sub), String(payload.jti)));
             }
         } catch {
             // ignore malformed token
