@@ -1,12 +1,13 @@
-// src/docs/paths/userDetails.ts
 export const userDetailsPaths = {
     '/api/users/{id}/details': {
         parameters: [
             { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
         ],
+
         get: {
             tags: ['UserDetails'],
             summary: 'Get user details by user id',
+            security: [{ bearerAuth: [] }],
             responses: {
                 '200': {
                     description: 'User details',
@@ -39,9 +40,11 @@ export const userDetailsPaths = {
                 },
             },
         },
+
         post: {
             tags: ['UserDetails'],
             summary: 'Create user details for a user',
+            security: [{ bearerAuth: [] }],
             requestBody: {
                 required: true,
                 content: {
@@ -90,9 +93,11 @@ export const userDetailsPaths = {
                 },
             },
         },
+
         patch: {
             tags: ['UserDetails'],
             summary: 'Patch (partial update) user details for a user',
+            security: [{ bearerAuth: [] }],
             requestBody: {
                 required: true,
                 content: {
@@ -128,9 +133,11 @@ export const userDetailsPaths = {
                 },
             },
         },
+
         delete: {
             tags: ['UserDetails'],
             summary: 'Delete user details for a user',
+            security: [{ bearerAuth: [] }],
             responses: {
                 '204': { description: 'Deleted' },
                 '404': {

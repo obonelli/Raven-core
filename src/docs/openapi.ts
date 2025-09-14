@@ -43,6 +43,15 @@ export function buildOpenAPISpec(baseUrl: string) {
         },
 
         components: {
+            // 👇 add securitySchemes here
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                    description: 'Paste your access token here (without quotes)',
+                },
+            },
             schemas: {
                 // Common error
                 Error: {

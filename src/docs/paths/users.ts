@@ -1,4 +1,3 @@
-// src/docs/paths/users.ts
 export const usersPaths = {
     '/api/users': {
         get: {
@@ -35,9 +34,11 @@ export const usersPaths = {
                 },
             },
         },
+
         post: {
             tags: ['Users'],
             summary: 'Create user',
+            security: [{ bearerAuth: [] }],
             requestBody: {
                 required: true,
                 content: {
@@ -87,6 +88,7 @@ export const usersPaths = {
         parameters: [
             { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
         ],
+
         get: {
             tags: ['Users'],
             summary: 'Get user by id',
@@ -116,9 +118,11 @@ export const usersPaths = {
                 },
             },
         },
+
         patch: {
             tags: ['Users'],
             summary: 'Update user',
+            security: [{ bearerAuth: [] }],
             requestBody: {
                 required: true,
                 content: {
@@ -146,9 +150,11 @@ export const usersPaths = {
                 },
             },
         },
+
         delete: {
             tags: ['Users'],
             summary: 'Delete user',
+            security: [{ bearerAuth: [] }],
             responses: {
                 '204': { description: 'Deleted' },
                 '404': {
