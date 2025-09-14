@@ -1,9 +1,10 @@
+// src/controllers/auth.controller.ts
 import type { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { k, rSet, rGet, rDel, REDIS_TTL } from '../config/redis.js';
-import { signAccessToken, signRefreshToken, verifyJWT, REFRESH_EXPIRES_IN } from '../config/jwt.js';
-import * as usersRepo from '../repositories/user.dynamo.repo'
+import { k, rSet, rGet, rDel, REDIS_TTL } from '../config/redis';
+import { signAccessToken, signRefreshToken, verifyJWT, REFRESH_EXPIRES_IN } from '../config/jwt';
+import * as usersRepo from '../repositories/user.dynamo.repo';
 
 // Parse "7d" → seconds (s/m/h/d/w)
 function toSeconds(span: string): number {
@@ -29,11 +30,16 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     try {
         const { email, password } = req.body as { email: string; password: string };
 
-        // Dynamo: find user(s) by email
+        // 1) Query by email (GSI)
         const matches = await usersRepo.findByEmail(email);
-        const user = matches[0] ?? null;
+        let user = matches[0] ?? null;
 
-        // If you don't yet store passwordHash in Dynamo, this will 401 (as intended).
+        // 2) If GSI projection didn't include passwordHash, hydrate with PK get
+        if (user && !(user as any).passwordHash) {
+            const full = await usersRepo.getById(user.userId);
+            user = full ?? user;
+        }
+
         if (!user || !(user as any).passwordHash) {
             return res.status(401).json({ error: 'InvalidCredentials', message: 'Email or password is incorrect' });
         }
@@ -45,7 +51,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
         // Build payload while omitting undefined fields (for exactOptionalPropertyTypes)
         const base = {
-            sub: String((user as any).userId ?? user.userId),
+            sub: String(user.userId),
             ...(user.email !== undefined ? { email: user.email } : {}),
             ...((user as any).role !== undefined ? { role: (user as any).role as string } : {}),
         };
@@ -57,11 +63,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         await rSet(rtKey(String(user.userId), jti), true, Math.max(REFRESH_TTL_SEC, REDIS_TTL));
 
         return res.json({
-            user: {
-                id: user.userId,
-                email: user.email,
-                role: (user as any).role ?? undefined,
-            },
+            user: { id: user.userId, email: user.email, role: (user as any).role ?? undefined },
             accessToken,
             refreshToken,
         });

@@ -6,7 +6,8 @@
     "dev": "nodemon -q --watch src --exec tsx src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "seed:dev:user": "tsx scripts/seed-dev-user.ts"
   },
   "keywords": [],
   "author": "",
