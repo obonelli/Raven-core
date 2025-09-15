@@ -1,4 +1,3 @@
-// src/docs/openapi.ts
 // Minimal OpenAPI 3.0 spec, modular by controller
 
 import { usersPaths } from './paths/users.js';
@@ -29,21 +28,12 @@ export function buildOpenAPISpec(baseUrl: string) {
             { name: 'UserDetails', description: 'Additional details for a user (MySQL)' },
         ],
         paths: {
-            // --- Health (modular) ---
             ...healthPaths,
-
-            // --- Auth (modular) ---
             ...authPaths,
-
-            // --- Users (modular) ---
             ...usersPaths,
-
-            // --- UserDetails (modular) ---
             ...userDetailsPaths,
         },
-
         components: {
-            // 👇 add securitySchemes here
             securitySchemes: {
                 bearerAuth: {
                     type: 'http',
@@ -53,23 +43,14 @@ export function buildOpenAPISpec(baseUrl: string) {
                 },
             },
             schemas: {
-                // Common error
                 Error: {
                     type: 'object',
                     properties: { error: { type: 'string' } },
                     example: { error: 'Something went wrong' },
                 },
-
-                // Health (modular)
                 ...healthSchemas,
-
-                // Auth (modular)
                 ...authSchemas,
-
-                // Users (modular)
                 ...usersSchemas,
-
-                // UserDetails (modular)
                 ...userDetailsSchemas,
             },
         },

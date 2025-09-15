@@ -39,14 +39,23 @@ app.get('/api/ping', (_req, res) => {
 const vercelUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : `http://localhost:${env.PORT}`;
+
 const spec = buildOpenAPISpec(vercelUrl);
 
-// Mount Swagger UI (path /docs)
-registerSwaggerDocs(app, spec, {
-    path: '/docs',
-    theme: 'dracula',
-    title: 'My API — Docs',
+// Exponer el JSON de la especificación (útil si el UI lo necesita o para debug)
+app.get('/docs.json', (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json(spec);
 });
+
+// Mount Swagger UI (path /docs)
+// Mantén Dracula en dev, evita tema en prod (en Vercel) para no romper la UI
+const swaggerOpts: { path: string; title: string; theme?: string } = {
+    path: '/docs',
+    title: 'My API — Docs',
+    ...(env.NODE_ENV !== 'production' ? { theme: 'dracula' } : {}),
+};
+registerSwaggerDocs(app, spec, swaggerOpts);
 
 // Routes
 app.use('/api/auth', authRoutes);
