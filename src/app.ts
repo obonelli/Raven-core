@@ -21,7 +21,13 @@ app.use(express.json());
 
 // Only in local/dev environments
 if (env.NODE_ENV !== 'production') {
-    await ensureUsersTable(DDB_USERS_TABLE);
+    (async () => {
+        try {
+            await ensureUsersTable(DDB_USERS_TABLE);
+        } catch {
+            // optionally log, but don't block app start in dev/tests
+        }
+    })();
 }
 
 // Health check and ping endpoints
