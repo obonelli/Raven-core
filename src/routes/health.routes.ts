@@ -1,15 +1,14 @@
-import { Router } from 'express';
+import { Router, type Router as RouterType } from 'express';
 import { ddb, DDB_USERS_TABLE } from '../config/dynamo.js';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { prisma } from '../config/prisma.js';
-import { rPing } from '../config/redis.js'; // 👈 usar helper de config/redis
+import { rPing } from '../config/redis.js';
 
-const r = Router();
+const r: RouterType = Router();
 
-// Health for DynamoDB
+// DynamoDB
 r.get('/dynamo', async (_req, res, next) => {
     try {
-        // Operación ligera (no lee toda la tabla)
         await ddb.send(new ScanCommand({ TableName: DDB_USERS_TABLE, Limit: 1 }));
         res.json({ ok: true, service: 'dynamo' });
     } catch (err) {
@@ -17,7 +16,7 @@ r.get('/dynamo', async (_req, res, next) => {
     }
 });
 
-// Health for MySQL
+// MySQL
 r.get('/mysql', async (_req, res, next) => {
     try {
         await prisma.$queryRawUnsafe('SELECT 1');
@@ -27,7 +26,7 @@ r.get('/mysql', async (_req, res, next) => {
     }
 });
 
-// Health for Redis (solo conectividad; no escribe)
+// Redis
 r.get('/redis', async (_req, res, next) => {
     try {
         const ok = await rPing();

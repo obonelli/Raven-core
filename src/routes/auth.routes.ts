@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import { Router, type Router as RouterType } from 'express';
 import { login, refresh, logout, me } from '../controllers/auth.controller.js';
 import { requireAuth } from '../middlewares/requireAuth.js';
 import { validate } from '../middlewares/validate.js';
 import { LoginSchema, RefreshSchema } from '../schemas/auth.schema.js';
 
-const r = Router();
+const r: RouterType = Router();
 
 r.post('/login', validate(LoginSchema), login);
 r.post('/refresh', validate(RefreshSchema), refresh);
