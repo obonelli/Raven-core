@@ -41,6 +41,11 @@ export default [
     },
     {
         files: ['**/*.{test,spec}.{ts,js}'],
-        languageOptions: { globals: { ...globals.jest } },
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                ...globals.jest,
+            },
+        },
     },
 ];

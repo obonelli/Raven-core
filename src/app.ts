@@ -35,7 +35,6 @@ app.get('/health', (_req, res) => res.json({ ok: true, env: env.NODE_ENV }));
 app.get('/api/ping', (_req, res) => res.json({ ok: true, message: 'pong 🏓' }));
 
 // OpenAPI: relative base path (works both locally and on Render)
-const apiBase = '/api';
 const spec = buildOpenAPISpec();
 
 // Expose OpenAPI spec as JSON
