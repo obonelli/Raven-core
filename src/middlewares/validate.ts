@@ -2,6 +2,9 @@
 import type { RequestHandler } from 'express';
 import type { ZodTypeAny, ZodObject, ZodRawShape } from 'zod';
 
+// Generic dictionary for parameters
+type ParamsDict = Record<string, string>;
+
 export function validateBody(schema: ZodTypeAny): RequestHandler {
     return (req, res, next) => {
         const parsed = schema.safeParse(req.body);
@@ -25,7 +28,7 @@ export function validateParams(schema: ZodObject<ZodRawShape>): RequestHandler {
                 details: parsed.error.flatten(),
             });
         }
-        req.params = parsed.data as import('express-serve-static-core').ParamsDictionary;
+        req.params = parsed.data as ParamsDict;
         next();
     };
 }
@@ -47,7 +50,7 @@ export function validate(schema: ZodObject<ZodRawShape>): RequestHandler {
 
         const data = parsed.data as {
             body?: unknown;
-            params?: import('express-serve-static-core').ParamsDictionary;
+            params?: ParamsDict;
             query?: unknown;
         };
 
