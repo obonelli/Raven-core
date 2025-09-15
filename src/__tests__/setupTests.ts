@@ -1,5 +1,3 @@
-import { jest } from '@jest/globals';
-
 // Force prod to skip dev bootstraps in app.ts
 process.env.NODE_ENV = 'production';
 
