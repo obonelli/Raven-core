@@ -2,8 +2,16 @@
 import { redis, REDIS_TTL } from '../config/redis.js';
 
 export async function getJSON<T>(key: string): Promise<T | null> {
-    const raw = await redis.get<string>(key);
-    return raw ? (typeof raw === 'string' ? JSON.parse(raw) : (raw as any)) : null;
+    const raw = await redis.get<unknown>(key);
+    if (raw == null) return null;
+    if (typeof raw === 'string') {
+        try {
+            return JSON.parse(raw) as T;
+        } catch {
+            return raw as unknown as T;
+        }
+    }
+    return raw as T;
 }
 
 export async function setJSON<T>(key: string, value: T, ttlSeconds = REDIS_TTL): Promise<void> {

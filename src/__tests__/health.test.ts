@@ -1,26 +1,24 @@
-// @ts-nocheck
 import request from 'supertest';
+import express, { Request, Response, NextFunction } from 'express';
 
 /** Block /api/auth so app never imports auth.controller → config/jwt → jose */
 jest.mock('../routes/auth.routes.js', () => {
-    const express = require('express');
     return { __esModule: true, default: express.Router() };
 });
 jest.mock('../routes/auth.routes', () => {
-    const express = require('express');
     return { __esModule: true, default: express.Router() };
 });
 
 /** Bypass auth middleware just in case */
 jest.mock('../middlewares/requireAuth.js', () => ({
     __esModule: true,
-    default: (_req: any, _res: any, next: any) => next(),
-    requireAuth: (_req: any, _res: any, next: any) => next(),
+    default: (_req: Request, _res: Response, next: NextFunction) => next(),
+    requireAuth: (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 jest.mock('../middlewares/requireAuth', () => ({
     __esModule: true,
-    default: (_req: any, _res: any, next: any) => next(),
-    requireAuth: (_req: any, _res: any, next: any) => next(),
+    default: (_req: Request, _res: Response, next: NextFunction) => next(),
+    requireAuth: (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 
 /** Infra used by health */

@@ -1,8 +1,9 @@
 // src/repositories/userDetails.mysql.repo.ts
 import { prisma } from '../config/prisma.js';
 import type { UserDetails } from '../models/userDetails.model.js';
+import type { UserDetails as PrismaUserDetails } from '@prisma/client';
 
-function toDomain(row: any): UserDetails {
+function toDomain(row: PrismaUserDetails): UserDetails {
     return {
         id: row.id,
         userId: row.userId,
@@ -21,7 +22,10 @@ export async function getByUserId(userId: string): Promise<UserDetails | null> {
     return row ? toDomain(row) : null;
 }
 
-export async function create(userId: string, data: Omit<UserDetails, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<UserDetails> {
+export async function create(
+    userId: string,
+    data: Omit<UserDetails, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+): Promise<UserDetails> {
     const row = await prisma.userDetails.create({
         data: {
             userId,
@@ -35,11 +39,18 @@ export async function create(userId: string, data: Omit<UserDetails, 'id' | 'use
     return toDomain(row);
 }
 
-export async function update(userId: string, data: Partial<Omit<UserDetails, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>): Promise<UserDetails> {
+export async function update(
+    userId: string,
+    data: Partial<Omit<UserDetails, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>
+): Promise<UserDetails> {
     const row = await prisma.userDetails.update({
         where: { userId },
         data: {
-            ...data,
+            ...(data.phone !== undefined ? { phone: data.phone } : {}),
+            ...(data.address !== undefined ? { address: data.address } : {}),
+            ...(data.city !== undefined ? { city: data.city } : {}),
+            ...(data.country !== undefined ? { country: data.country } : {}),
+            ...(data.zip !== undefined ? { zip: data.zip } : {}),
         },
     });
     return toDomain(row);
