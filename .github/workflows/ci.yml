@@ -35,8 +35,11 @@ jobs:
           cache: pnpm
 
       # 4) Install dependencies exactly as pinned in pnpm-lock.yaml
+      # 👇 Forzamos NODE_ENV=development para que pnpm no omita devDependencies
       - name: Install deps
         run: pnpm install --frozen-lockfile
+        env:
+          NODE_ENV: development
 
       # 5) Generate Prisma Client (needed for build/test that import it)
       - name: Generate Prisma
