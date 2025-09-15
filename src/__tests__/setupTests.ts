@@ -1,9 +1,10 @@
-/* eslint-env jest */
+// @ts-nocheck
+import { jest } from '@jest/globals';
 
-// We force prod to skip dev bootstraps in app.ts
+// Force prod to skip dev bootstraps in app.ts
 process.env.NODE_ENV = 'production';
 
-// Mute pine in tests
+// Mute pino in tests
 jest.mock('../config/logger.js', () => {
     const noop = { info: () => { }, error: () => { }, warn: () => { }, debug: () => { } };
     return { logger: noop };
