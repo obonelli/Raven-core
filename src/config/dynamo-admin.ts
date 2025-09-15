@@ -5,7 +5,7 @@ import {
     DescribeTableCommand,
     waitUntilTableExists,
 } from '@aws-sdk/client-dynamodb';
-import { fromEnv } from '@aws-sdk/credential-provider-env';
+import { fromEnv } from '@aws-sdk/credential-providers';
 
 const AWS_REGION = (process.env.AWS_REGION ?? 'us-east-1').trim();
 

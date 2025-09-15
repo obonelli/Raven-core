@@ -2,7 +2,8 @@ import 'dotenv/config';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
-import { fromEnv } from '@aws-sdk/credential-provider-env';
+import { fromEnv } from '@aws-sdk/credential-providers';
+
 
 // Read & trim env (avoid hidden spaces/newlines)
 const AWS_REGION = (process.env.AWS_REGION || 'us-east-1').trim();
