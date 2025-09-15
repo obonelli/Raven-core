@@ -12,6 +12,11 @@ import { buildOpenAPISpec } from './docs/openapi.js';
 import { registerSwaggerDocs } from './docs/components/swagger.js';
 
 const app = express();
+
+// Render está detrás de proxy (https correcto en req.protocol, etc.)
+app.set('trust proxy', true);
+
+// JSON
 app.use(express.json());
 
 // Solo en local/dev
@@ -23,7 +28,7 @@ if (env.NODE_ENV !== 'production') {
 app.get('/health', (_req, res) => res.json({ ok: true, env: env.NODE_ENV }));
 app.get('/api/ping', (_req, res) => res.json({ ok: true, message: 'pong 🏓' }));
 
-// OpenAPI: usa base relativa para que funcione en Render y local
+// OpenAPI: base relativa para que funcione igual en Render y local
 const apiBase = '/api';
 const spec = buildOpenAPISpec(apiBase);
 
@@ -33,18 +38,21 @@ app.get('/docs.json', (_req, res) => {
     res.json(spec);
 });
 
-// Swagger UI en /docs (sin hacks)
+// Swagger UI en /docs
 registerSwaggerDocs(app, spec, {
     path: '/docs',
     title: 'My API — Docs',
     ...(env.NODE_ENV !== 'production' ? { theme: 'dracula' } : {}),
 });
 
+// Atajo: abrir docs en raíz
+app.get('/', (_req, res) => res.redirect('/docs'));
+
 // Rutas API
 app.use('/api/auth', authRoutes);
 app.use('/api', routes);
 
-// Errores
+// Middlewares de error
 app.use(notFound);
 app.use(errorHandler);
 
