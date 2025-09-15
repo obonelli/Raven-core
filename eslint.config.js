@@ -4,26 +4,27 @@ import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
 export default [
-    {
-        ignores: ['dist/**', 'node_modules/**'],
-    },
+    // ignore build artifacts
+    { ignores: ['dist/**', 'node_modules/**'] },
+
+    // base recommended rules (JS + TS)
+    js.configs.recommended,
+    ...tseslint.configs.recommended,
+
     {
         files: ['**/*.{ts,tsx,js}'],
         languageOptions: {
             parser: tseslint.parser,
             parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
-            globals: {
-                ...globals.node,
-            },
+            globals: { ...globals.node },
         },
         plugins: {
             '@typescript-eslint': tseslint.plugin,
         },
         rules: {
-            ...js.configs.recommended.rules,
-            ...tseslint.configs.recommended.rules,
+            // prefer the TS version of no-unused-vars
             'no-console': 'off',
-            'no-undef': 'error',
+            'no-undef': 'off',
             'no-unused-vars': 'off',
             '@typescript-eslint/no-unused-vars': [
                 'warn',
@@ -31,21 +32,16 @@ export default [
             ],
         },
     },
+
+    // browser-only file(s)
     {
         files: ['src/docs/components/swagger.ts'],
-        languageOptions: {
-            globals: {
-                ...globals.browser,
-            },
-        },
+        languageOptions: { globals: { ...globals.browser } },
     },
+
+    // test files
     {
         files: ['**/*.{test,spec}.{ts,js}'],
-        languageOptions: {
-            globals: {
-                ...globals.node,
-                ...globals.jest,
-            },
-        },
+        languageOptions: { globals: { ...globals.node, ...globals.jest } },
     },
 ];
