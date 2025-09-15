@@ -4,12 +4,12 @@ import { logger } from './config/logger.js';
 
 const port = Number(env.PORT ?? process.env.PORT ?? 3000);
 
-// Escucha en 0.0.0.0 para Render
+// Listen on 0.0.0.0 (needed for Render)
 const server = app.listen(port, '0.0.0.0', () => {
     logger.info(`API listening on http://localhost:${port}`);
 });
 
-// Cierre ordenado (Render hace rollouts y sends SIGTERM)
+// Graceful shutdown (Render rollouts send SIGTERM)
 const shutDown = (signal: string) => {
     logger.info(`${signal} received. Shutting down...`);
     server.close(() => {
