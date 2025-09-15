@@ -4,11 +4,13 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint \"src/**/*.{ts,tsx}\" --cache --cache-location node_modules/.cache/eslint",
-    "dev": "nodemon -q",
+    "dev": "nodemon -q --watch src --ext ts,tsx,js,json --exec \"tsx src/server.ts\"",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "jest --runInBand",
-    "seed:dev:user": "tsx scripts/seed-dev-user.ts"
+    "seed:dev:user": "tsx scripts/seed-dev-user.ts",
+    "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && tsc -p tsconfig.json"
   },
   "keywords": [],
   "author": "",
