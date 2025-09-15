@@ -2,9 +2,9 @@
 import type { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { buildCacheKey, rSet, rGet, rDel, REDIS_TTL } from '../config/redis';
-import { signAccessToken, signRefreshToken, verifyJWT, REFRESH_EXPIRES_IN } from '../config/jwt';
-import * as usersRepo from '../repositories/user.dynamo.repo';
+import { buildCacheKey, rSet, rGet, rDel, REDIS_TTL } from '../config/redis.js';
+import { signAccessToken, signRefreshToken, verifyJWT, REFRESH_EXPIRES_IN } from '../config/jwt.js';
+import * as usersRepo from '../repositories/user.dynamo.repo.js';
 
 // Parse "7d" → seconds (s/m/h/d/w)
 function toSeconds(span: string): number {

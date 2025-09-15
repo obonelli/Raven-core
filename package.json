@@ -9,13 +9,9 @@
     "start": "node dist/server.js",
     "test": "jest --runInBand",
     "seed:dev:user": "tsx scripts/seed-dev-user.ts",
-    "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && tsc -p tsconfig.json"
+    "postinstall": "npx prisma generate",
+    "vercel-build": "npx prisma generate && tsc -p tsconfig.json"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "type": "module",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.888.0",
@@ -49,6 +45,7 @@
     "ts-jest": "^29.4.1",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.43.0"
+    "typescript-eslint": "^8.43.0",
+    "prisma": "^6.16.1"
   }
 }

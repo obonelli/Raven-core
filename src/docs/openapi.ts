@@ -1,17 +1,17 @@
 // src/docs/openapi.ts
 // Minimal OpenAPI 3.0 spec, modular by controller
 
-import { usersPaths } from './paths/users';
-import { usersSchemas } from './components/users.schemas';
+import { usersPaths } from './paths/users.js';
+import { usersSchemas } from './components/users.schemas.js';
 
-import { userDetailsPaths } from './paths/userDetails';
-import { userDetailsSchemas } from './components/userDetails.schemas';
+import { userDetailsPaths } from './paths/userDetails.js';
+import { userDetailsSchemas } from './components/userDetails.schemas.js';
 
-import { healthPaths } from './paths/health';
-import { healthSchemas } from './components/health.schemas';
+import { healthPaths } from './paths/health.js';
+import { healthSchemas } from './components/health.schemas.js';
 
-import { authPaths } from './paths/auth';
-import { authSchemas } from './components/auth.schemas';
+import { authPaths } from './paths/auth.js';
+import { authSchemas } from './components/auth.schemas.js';
 
 export function buildOpenAPISpec(baseUrl: string) {
     const spec = {

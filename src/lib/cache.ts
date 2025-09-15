@@ -1,5 +1,5 @@
 // src/lib/cache.ts
-import { redis, REDIS_TTL } from '../config/redis';
+import { redis, REDIS_TTL } from '../config/redis.js';
 
 export async function getJSON<T>(key: string): Promise<T | null> {
     const raw = await redis.get<string>(key);
