@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import express from 'express';
+import express, { type Express } from 'express'; // 👈 importamos el tipo Express
 import { env } from './config/env.js';
 import routes from './routes/index.js';
 import { notFound } from './middlewares/not-found.js';
@@ -11,7 +11,7 @@ import authRoutes from './routes/auth.routes.js';
 import { buildOpenAPISpec } from './docs/openapi.js';
 import { registerSwaggerDocs } from './docs/components/swagger.js';
 
-const app = express();
+const app: Express = express(); // 👈 anotación explícita
 
 // Render is behind a proxy (ensures correct req.protocol, HTTPS, etc.)
 app.set('trust proxy', true);
