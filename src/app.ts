@@ -30,38 +30,43 @@ app.get('/health', (_req, res) => {
     res.json({ ok: true, env: env.NODE_ENV });
 });
 
-// Quick test endpoint for Vercel
+// Quick test endpoint
 app.get('/api/ping', (_req, res) => {
     res.json({ ok: true, message: 'pong 🏓' });
 });
 
-// Base URL for Swagger: if running on Vercel, use its domain; otherwise use localhost
-const vercelUrl = process.env.VERCEL_URL
+// Base URL for Swagger
+const origin = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : `http://localhost:${env.PORT}`;
+const apiBase = process.env.VERCEL_URL ? `${origin}/api` : origin;
 
-const spec = buildOpenAPISpec(vercelUrl);
+// Build spec with correct server URL
+const spec = buildOpenAPISpec(apiBase);
 
-// Exponer el JSON de la especificación (útil si el UI lo necesita o para debug)
-app.get('/docs.json', (_req, res) => {
+// Rutas de Swagger dependen del entorno
+const docsPath = process.env.VERCEL_URL ? '/api/docs' : '/docs';
+const docsJsonPath = process.env.VERCEL_URL ? '/api/docs.json' : '/docs.json';
+
+// JSON spec
+app.get(docsJsonPath, (_req, res) => {
     res.set('Cache-Control', 'no-store');
     res.json(spec);
 });
 
-// Mount Swagger UI (path /docs)
-// Mantén Dracula en dev, evita tema en prod (en Vercel) para no romper la UI
+// UI
 const swaggerOpts: { path: string; title: string; theme?: string } = {
-    path: '/docs',
+    path: docsPath,
     title: 'My API — Docs',
     ...(env.NODE_ENV !== 'production' ? { theme: 'dracula' } : {}),
 };
 registerSwaggerDocs(app, spec, swaggerOpts);
 
-// Routes
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api', routes);
 
-// Error middlewares
+// Errors
 app.use(notFound);
 app.use(errorHandler);
 
