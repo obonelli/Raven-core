@@ -23,7 +23,7 @@ if (env.NODE_ENV !== 'production') {
 app.get('/health', (_req, res) => res.json({ ok: true, env: env.NODE_ENV }));
 app.get('/api/ping', (_req, res) => res.json({ ok: true, message: 'pong 🏓' }));
 
-// Base URL para spec
+// Base URL para spec (siempre termina en /api)
 const origin = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : `http://localhost:${env.PORT}`;
@@ -32,18 +32,24 @@ const apiBase = `${origin}/api`;
 // OpenAPI spec
 const spec = buildOpenAPISpec(apiBase);
 
-// JSON del spec en /api/docs.json
-app.get('/api/docs.json', (_req, res) => {
-    res.set('Cache-Control', 'no-store');
-    res.json(spec);
-});
+/**
+ * Swagger solo en local:
+ *  - UI:       /docs
+ *  - Spec:     /docs.json
+ * En Vercel, la UI vive en la lambda: /api/docs (y /api/docs/docs.json)
+ */
+if (env.NODE_ENV !== 'production') {
+    app.get('/docs.json', (_req, res) => {
+        res.set('Cache-Control', 'no-store');
+        res.json(spec);
+    });
 
-// Swagger UI en /api/docs
-registerSwaggerDocs(app, spec, {
-    path: '/api/docs',
-    title: 'My API — Docs',
-    ...(env.NODE_ENV !== 'production' ? { theme: 'dracula' } : {}),
-});
+    registerSwaggerDocs(app, spec, {
+        path: '/docs',
+        title: 'My API — Docs',
+        theme: 'dracula',
+    });
+}
 
 // API routes
 app.use('/api/auth', authRoutes);

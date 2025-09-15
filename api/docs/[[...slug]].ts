@@ -5,13 +5,13 @@ import { env } from '../../src/config/env.js';
 
 const app = express();
 
-// Base URL de la API (siempre termina en /api)
+// URL base de la API (siempre termina en /api)
 const origin = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : `http://localhost:${env.PORT}`;
 const apiBase = `${origin}/api`;
 
-// Construir spec
+// Spec
 const spec = buildOpenAPISpec(apiBase);
 
 // JSON en /api/docs/docs.json
@@ -20,7 +20,7 @@ app.get('/docs.json', (_req, res) => {
     res.json(spec);
 });
 
-// HTML con Swagger UI desde CDN (sin servir assets locales)
+// UI con assets por CDN (así evitamos cualquier 404 de assets)
 app.get(['/', '/index.html'], (_req, res) => {
     res.set('Cache-Control', 'no-store');
     res.type('html').send(`<!DOCTYPE html>
@@ -30,7 +30,7 @@ app.get(['/', '/index.html'], (_req, res) => {
   <title>My API — Docs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" />
-  <style>body { margin: 0; } #swagger-ui { min-height: 100vh; }</style>
+  <style>body{margin:0}#swagger-ui{min-height:100vh}</style>
 </head>
 <body>
   <div id="swagger-ui"></div>
