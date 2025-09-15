@@ -30,7 +30,7 @@ app.get('/api/ping', (_req, res) => res.json({ ok: true, message: 'pong 🏓' })
 
 // OpenAPI: base relativa para que funcione igual en Render y local
 const apiBase = '/api';
-const spec = buildOpenAPISpec(apiBase);
+const spec = buildOpenAPISpec();
 
 // Docs JSON
 app.get('/docs.json', (_req, res) => {

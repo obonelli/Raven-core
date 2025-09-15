@@ -12,7 +12,7 @@ import { healthSchemas } from './components/health.schemas.js';
 import { authPaths } from './paths/auth.js';
 import { authSchemas } from './components/auth.schemas.js';
 
-export function buildOpenAPISpec(baseUrl: string) {
+export function buildOpenAPISpec() {
     const spec = {
         openapi: '3.0.3',
         info: {
@@ -20,7 +20,12 @@ export function buildOpenAPISpec(baseUrl: string) {
             version: '1.0.0',
             description: 'Express + TypeScript API (MVC)',
         },
-        servers: [{ url: baseUrl }],
+        servers: [
+            {
+                url: '/',
+                description: 'Base URL (paths already include /api)',
+            },
+        ],
         tags: [
             { name: 'Health', description: 'Service health checks' },
             { name: 'Auth', description: 'JWT authentication (login/refresh/logout/me)' },
