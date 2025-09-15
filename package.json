@@ -9,8 +9,7 @@
     "start": "node dist/server.js",
     "test": "jest --runInBand",
     "seed:dev:user": "tsx scripts/seed-dev-user.ts",
-    "postinstall": "npx prisma generate",
-    "vercel-build": "npx prisma generate && tsc -p tsconfig.json"
+    "postinstall": "npx prisma generate"
   },
   "type": "module",
   "dependencies": {
