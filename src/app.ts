@@ -30,6 +30,11 @@ app.get('/health', (_req, res) => {
     res.json({ ok: true, env: env.NODE_ENV });
 });
 
+// Quick test endpoint for Vercel
+app.get('/api/ping', (_req, res) => {
+    res.json({ ok: true, message: 'pong 🏓' });
+});
+
 // Base URL for Swagger: if running on Vercel, use its domain; otherwise use localhost
 const vercelUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`

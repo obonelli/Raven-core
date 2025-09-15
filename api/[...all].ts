@@ -1,3 +1,3 @@
-// api/index.ts
+// api/[...all].ts
 import app from '../src/app.js';
 export default app;
