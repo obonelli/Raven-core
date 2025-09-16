@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import express, { type Express } from 'express'; // 👈 importamos el tipo Express
+import express, { type Express } from 'express';
 import { env } from './config/env.js';
 import routes from './routes/index.js';
 import { notFound } from './middlewares/not-found.js';
@@ -11,54 +11,74 @@ import authRoutes from './routes/auth.routes.js';
 import { buildOpenAPISpec } from './docs/openapi.js';
 import { registerSwaggerDocs } from './docs/components/swagger.js';
 
-const app: Express = express(); // 👈 anotación explícita
+// Monitoring
+import { initSentry, Sentry } from './config/sentry.js';
+import { metricsMiddleware, metricsHandler } from './monitoring/metrics.js';
 
-// Render is behind a proxy (ensures correct req.protocol, HTTPS, etc.)
+const app: Express = express();
+
+// Sentry must be initialized before route handling
+initSentry('raven-core');
+if (process.env.SENTRY_DSN) {
+    app.use(Sentry.Handlers.requestHandler());
+    app.use(Sentry.Handlers.tracingHandler());
+}
+
+// Behind proxy (corrects req.protocol, HTTPS, etc.)
 app.set('trust proxy', true);
 
-// Parse JSON requests
+// JSON body parsing
 app.use(express.json());
 
-// Only in local/dev environments
+// Dev-only: ensure DynamoDB table without blocking startup
 if (env.NODE_ENV !== 'production') {
     (async () => {
         try {
             await ensureUsersTable(DDB_USERS_TABLE);
         } catch {
-            // optionally log, but don't block app start in dev/tests
+            /* no-op in dev/test */
         }
     })();
 }
 
-// Health check and ping endpoints
+// Health endpoints
 app.get('/health', (_req, res) => res.json({ ok: true, env: env.NODE_ENV }));
 app.get('/api/ping', (_req, res) => res.json({ ok: true, message: 'pong 🏓' }));
 
-// OpenAPI: relative base path (works both locally and on Render)
-const spec = buildOpenAPISpec();
+// Prometheus metrics
+if (process.env.METRICS_ENABLED === 'true') {
+    app.use(metricsMiddleware);
+    app.get('/metrics', metricsHandler);
+}
 
-// Expose OpenAPI spec as JSON
+// OpenAPI spec + Swagger UI
+const spec = buildOpenAPISpec();
 app.get('/docs.json', (_req, res) => {
     res.set('Cache-Control', 'no-store');
     res.json(spec);
 });
-
-// Swagger UI available at /docs
 registerSwaggerDocs(app, spec, {
     path: '/docs',
     title: 'My API — Docs',
     ...(env.NODE_ENV !== 'production' ? { theme: 'dracula' } : {}),
 });
 
-// Shortcut: redirect root to docs
+// Redirect root to docs
 app.get('/', (_req, res) => res.redirect('/docs'));
 
-// API routes
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', routes);
 
-// Error middlewares
+// 404 handler
 app.use(notFound);
+
+// Sentry error handler before custom handler
+if (process.env.SENTRY_DSN) {
+    app.use(Sentry.Handlers.errorHandler());
+}
+
+// Custom error handler
 app.use(errorHandler);
 
 export default app;
