@@ -1,3 +1,4 @@
+// src/app.ts
 import 'dotenv/config';
 
 import express, { type Express } from 'express';
@@ -15,22 +16,28 @@ import { registerSwaggerDocs } from './docs/components/swagger.js';
 import { initSentry, Sentry } from './config/sentry.js';
 import { metricsMiddleware, metricsHandler } from './monitoring/metrics.js';
 
+// Security (helmet, CORS, rate limiting, slowdown)
+import { applySecurity, authLimiter } from './middlewares/security.js';
+
 const app: Express = express();
 
-// Sentry must be initialized before route handling
+// ---- Sentry initialization ----
 initSentry('raven-core');
 if (process.env.SENTRY_DSN) {
     app.use(Sentry.Handlers.requestHandler());
     app.use(Sentry.Handlers.tracingHandler());
 }
 
-// Behind proxy (corrects req.protocol, HTTPS, etc.)
+// ---- Proxy trust (e.g. Render, Vercel, Nginx) ----
 app.set('trust proxy', true);
 
-// JSON body parsing
+// ---- Security middlewares ----
+applySecurity(app);
+
+// ---- Body parsers ----
 app.use(express.json());
 
-// Dev-only: ensure DynamoDB table without blocking startup
+// ---- Dev-only bootstrap: ensure DynamoDB table ----
 if (env.NODE_ENV !== 'production') {
     (async () => {
         try {
@@ -41,17 +48,21 @@ if (env.NODE_ENV !== 'production') {
     })();
 }
 
-// Health endpoints
-app.get('/health', (_req, res) => res.json({ ok: true, env: env.NODE_ENV }));
-app.get('/api/ping', (_req, res) => res.json({ ok: true, message: 'pong 🏓' }));
+// ---- Health endpoints ----
+app.get('/health', (_req, res) =>
+    res.json({ ok: true, env: env.NODE_ENV })
+);
+app.get('/api/ping', (_req, res) =>
+    res.json({ ok: true, message: 'pong 🏓' })
+);
 
-// Prometheus metrics
+// ---- Prometheus metrics ----
 if (process.env.METRICS_ENABLED === 'true') {
     app.use(metricsMiddleware);
     app.get('/metrics', metricsHandler);
 }
 
-// OpenAPI spec + Swagger UI
+// ---- OpenAPI spec + Swagger UI ----
 const spec = buildOpenAPISpec();
 app.get('/docs.json', (_req, res) => {
     res.set('Cache-Control', 'no-store');
@@ -63,22 +74,24 @@ registerSwaggerDocs(app, spec, {
     ...(env.NODE_ENV !== 'production' ? { theme: 'dracula' } : {}),
 });
 
-// Redirect root to docs
+// ---- Redirect root to docs ----
 app.get('/', (_req, res) => res.redirect('/docs'));
 
-// Routes
-app.use('/api/auth', authRoutes);
+// ---- Routes ----
+// Auth routes protected with stricter rate limiter
+app.use('/api/auth', authLimiter, authRoutes);
+// General API routes
 app.use('/api', routes);
 
-// 404 handler
+// ---- 404 handler ----
 app.use(notFound);
 
-// Sentry error handler before custom handler
+// ---- Sentry error handler before custom handler ----
 if (process.env.SENTRY_DSN) {
     app.use(Sentry.Handlers.errorHandler());
 }
 
-// Custom error handler
+// ---- Custom error handler ----
 app.use(errorHandler);
 
 export default app;
