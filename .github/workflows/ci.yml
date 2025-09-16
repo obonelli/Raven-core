@@ -61,7 +61,7 @@ jobs:
       - name: Build
         run: pnpm build
 
-      # 9) Sentry release (only on main)
+      # 9) Sentry release (on main branch)
       - name: Sentry release
         if: github.ref == 'refs/heads/main'
         uses: getsentry/action-release@v1
