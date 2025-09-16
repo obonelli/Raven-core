@@ -1,54 +1,55 @@
 # .github/workflows/ci.yml
-name: CI
+name: CI # A short name shown in the Actions tab
 
 on:
   push:
-    branches: [main]
-  pull_request:
+    branches: [main] # Run on pushes to main
+  pull_request: # And on any PR (any branch → main)
 
+# Prevents piling up runs for the same ref (branch); newest run cancels older ones.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Least-privilege token for the job (only needs to read the repo).
 permissions:
   contents: read
 
 jobs:
-  test-build:
-    runs-on: ubuntu-latest
+  test-build: # Single job named "test-build"
+    runs-on: ubuntu-latest # GitHub-hosted Linux runner
 
     steps:
-      # 1) Checkout the repo (full history helps Sentry associate commits)
+      # 1) Check out your code
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # 2) Install pnpm CLI
+      # 2) Install pnpm CLI (we use pnpm because your repo has pnpm-lock.yaml)
       - uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      # 3) Setup Node and pnpm cache
+      # 3) Install Node and enable pnpm cache based on lockfile
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
 
-      # 4) Install dependencies (dev deps included)
+      # 4) Install dependencies exactly as pinned in pnpm-lock.yaml
+      # 👇 Forzamos NODE_ENV=development para que pnpm no omita devDependencies
       - name: Install deps
         run: pnpm install --frozen-lockfile
         env:
           NODE_ENV: development
 
-      # 5) Generate Prisma Client
+      # 5) Generate Prisma Client (needed for build/test that import it)
       - name: Generate Prisma
         run: pnpm prisma generate
 
-      # 6) Lint
+      # 6) Lint the codebase with ESLint (fails the build on lint errors)
       - name: Lint
         run: pnpm lint
 
-      # 7) Test
+      # 7) Run the test suite; force in-band if your tests touch globals/ports
       - name: Test
         env:
           NODE_ENV: test
@@ -57,19 +58,6 @@ jobs:
           JWT_AUDIENCE: myapi-clients
         run: pnpm test -- --runInBand
 
-      # 8) Build (dist/)
+      # 8) TypeScript build (produces dist/)
       - name: Build
         run: pnpm build
-
-      # 9) Sentry release (only on main)
-      - name: Sentry release
-        if: github.ref == 'refs/heads/main'
-        uses: getsentry/action-release@v1
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        with:
-          environment: production
-          # by default this uses the current commit SHA as the release version
-          # and associates commits thanks to checkout fetch-depth: 0
