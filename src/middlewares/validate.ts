@@ -33,6 +33,31 @@ export function validateParams(schema: ZodObject<ZodRawShape>): RequestHandler {
     };
 }
 
+/**
+ * Valida únicamente req.query contra un Zod schema.
+ * Guarda el resultado en res.locals.validatedQuery y además
+ * asigna req.query (cast) para que controladores existentes puedan leerlo.
+ */
+export function validateQuery(schema: ZodObject<ZodRawShape> | ZodTypeAny): RequestHandler {
+    return (req, res, next) => {
+        const parsed = schema.safeParse(req.query);
+        if (!parsed.success) {
+            return res.status(400).json({
+                error: 'ValidationError',
+                details: parsed.error.flatten(),
+            });
+        }
+        (res.locals as Record<string, unknown>).validatedQuery = parsed.data;
+        // Mantén compatibilidad con controladores que leen req.query:
+        req.query = parsed.data as any;
+        next();
+    };
+}
+
+/**
+ * Validador combinado para body/params/query cuando defines un schema
+ * con shape { body, params, query }.
+ */
 export function validate(schema: ZodObject<ZodRawShape>): RequestHandler {
     return (req, res, next) => {
         const parsed = schema.safeParse({
@@ -58,6 +83,7 @@ export function validate(schema: ZodObject<ZodRawShape>): RequestHandler {
         if (data.params !== undefined) req.params = data.params;
         if (data.query !== undefined) {
             (res.locals as Record<string, unknown>).validatedQuery = data.query;
+            req.query = data.query as any;
         }
 
         next();

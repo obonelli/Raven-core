@@ -1,0 +1,1 @@
+-- baseline: no SQL to run (DB already matches schema)

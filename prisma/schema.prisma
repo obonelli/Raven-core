@@ -9,13 +9,75 @@ datasource db {
 }
 
 model UserDetails {
-  id        String   @id @default(uuid())
-  userId    String   @unique        // logical reference to the user in Dynamo
-  phone     String? 
-  address   String? 
-  city      String?
-  country   String?
-  zip       String?
+  id        String   @id @default(uuid()) @db.Char(36) // UUID v4
+  userId    String   @unique @db.VarChar(64) // referencia a Dynamo
+  phone     String?  @db.VarChar(20) // E.164 (+521...)
+  address   String?  @db.VarChar(255)
+  city      String?  @db.VarChar(100)
+  country   String?  @db.VarChar(100)
+  zip       String?  @db.VarChar(20)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([updatedAt], map: "idx_userdetails_updated")
+}
+
+model Reminder {
+  id         String    @id @default(cuid())
+  userId     String    @db.VarChar(64) // referencia a user en Dynamo
+  title      String    @db.VarChar(255)
+  notes      String?   @db.Text
+  category   String?   @db.VarChar(100)
+  channel    Channel   @default(EMAIL)
+  status     RemStatus @default(QUEUED)
+  dueAt      DateTime
+  rrule      String?   @db.VarChar(255)
+  tz         String    @default("America/Mexico_City")
+  nlgPayload Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  notifications Notification[]
+
+  @@index([dueAt], map: "idx_reminder_dueAt")
+  @@index([userId, dueAt], map: "idx_reminder_user_dueAt")
+}
+
+model Notification {
+  id          String      @id @default(cuid())
+  reminderId  String
+  scheduledAt DateTime
+  sentAt      DateTime?
+  channel     Channel     @default(EMAIL)
+  status      NotifStatus @default(PENDING)
+  providerId  String?     @db.VarChar(128)
+  error       String?     @db.Text
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  reminder Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  @@index([scheduledAt], map: "idx_notification_scheduled")
+  @@index([reminderId], map: "idx_notification_reminder")
+}
+
+enum Channel {
+  EMAIL
+  WHATSAPP
+  SMS
+}
+
+enum RemStatus {
+  QUEUED
+  ACTIVE
+  PAUSED
+  DONE
+  CANCELED
+}
+
+enum NotifStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELED
 }

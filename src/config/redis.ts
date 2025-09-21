@@ -1,30 +1,78 @@
 // src/config/redis.ts
 import 'dotenv/config';
 import { Redis } from '@upstash/redis';
+import type { ConnectionOptions } from 'bullmq';
 
 const clean = (v?: string) =>
     v?.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
 
-const REDIS_URL = clean(process.env.UPSTASH_REDIS_REST_URL);
-const REDIS_TOKEN = clean(process.env.UPSTASH_REDIS_REST_TOKEN);
+// === Upstash REST (para cache / kv) ===
+const REST_URL = clean(process.env.UPSTASH_REDIS_REST_URL);
+const REST_TOKEN = clean(process.env.UPSTASH_REDIS_REST_TOKEN);
 
 export const REDIS_NAMESPACE = (process.env.REDIS_NAMESPACE ?? 'myapi').trim();
 export const REDIS_TTL = Number(process.env.REDIS_TTL_SECONDS ?? 300);
 
-if (!REDIS_URL || !REDIS_TOKEN) {
+if (!REST_URL || !REST_TOKEN) {
     throw new Error('Missing Redis envs: UPSTASH_REDIS_REST_URL / _TOKEN');
 }
 
 export const redis = new Redis({
-    url: REDIS_URL,
-    token: REDIS_TOKEN,
+    url: REST_URL,
+    token: REST_TOKEN,
     automaticDeserialization: true,
 });
 
+// === BullMQ (wire protocol) ===
+const WIRE_URL =
+    clean(process.env.BULL_REDIS_URL) ??
+    clean(process.env.UPSTASH_REDIS_URL) ??
+    clean(process.env.UPSTASH_REDIS_TLS_URL) ??
+    undefined;
+
+function urlToConnectionOptions(url: string): ConnectionOptions {
+    const u = new URL(url);
+    const isTls = u.protocol === 'rediss:';
+
+    const opts: ConnectionOptions = {
+        host: u.hostname,
+        port: u.port ? Number(u.port) : 6379,
+        // no username/password/tls aquí si están vacíos
+    };
+
+    if (u.username) {
+        // decode por si trae %40, etc.
+        (opts as any).username = decodeURIComponent(u.username);
+    }
+    if (u.password) {
+        (opts as any).password = decodeURIComponent(u.password);
+    }
+    if (isTls) {
+        (opts as any).tls = {};
+    }
+
+    return opts;
+}
+
+/** Conexión para BullMQ como **ConnectionOptions** (sin string, sin union) */
+export const bullConnection: ConnectionOptions = (() => {
+    if (!WIRE_URL) {
+        throw new Error(
+            [
+                'BullMQ requires a Redis wire-protocol URL.',
+                'Provide BULL_REDIS_URL (e.g., rediss://:password@host:port)',
+                'or UPSTASH_REDIS_URL / UPSTASH_REDIS_TLS_URL.',
+                'Note: UPSTASH_REDIS_REST_URL/TOKEN are REST-only and NOT compatible with BullMQ.',
+            ].join(' ')
+        );
+    }
+    return urlToConnectionOptions(WIRE_URL);
+})();
+
+// ==== Helpers REST (cache) ====
 export function buildCacheKey(...parts: (string | number | null | undefined)[]) {
     return [REDIS_NAMESPACE, ...parts.filter(Boolean)].join(':');
 }
-
 export const k = (...parts: (string | number | null | undefined)[]) =>
     buildCacheKey(...parts);
 
@@ -32,7 +80,6 @@ export async function rPing(timeoutMs = 1500): Promise<boolean> {
     const to = new Promise<never>((_, rej) =>
         setTimeout(() => rej(new Error('Redis timeout')), timeoutMs)
     );
-
     try {
         await Promise.race([redis.get('__health__'), to]);
     } catch {
@@ -41,7 +88,6 @@ export async function rPing(timeoutMs = 1500): Promise<boolean> {
         }
         return false;
     }
-
     try {
         await Promise.race([redis.ping(), to]);
     } catch {
@@ -67,11 +113,9 @@ export async function rSet<T extends RedisJSON>(
 ) {
     return redis.set(buildCacheKey(key), value, { ex: ttlSec });
 }
-
 export async function rGet<T = unknown>(key: string) {
     return redis.get<T>(buildCacheKey(key));
 }
-
 export async function rDel(key: string) {
     return redis.del(buildCacheKey(key));
 }
