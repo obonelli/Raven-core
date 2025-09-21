@@ -18,50 +18,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Checkout the repo (full history helps Sentry associate commits)
+      # 1) Checkout del repo (historial completo para asociar commits en Sentry)
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Install pnpm CLI
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      # 3) Setup Node and pnpm cache
+      # 2) Setup Node y cache de npm
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
+          cache: npm
 
-      # 4) Install dependencies (dev deps included)
+      # 3) Instalar dependencias (respeta package-lock.json)
       - name: Install deps
-        run: pnpm install --frozen-lockfile
+        run: npm ci --no-audit --no-fund
         env:
           NODE_ENV: development
 
-      # 5) Generate Prisma Client
+      # 4) Generar Prisma Client
       - name: Generate Prisma
-        run: pnpm prisma generate
+        run: npx prisma generate
 
-      # 6) Lint
+      # 5) Lint
       - name: Lint
-        run: pnpm lint
+        run: npm run lint
 
-      # 7) Test
+      # 6) Test
       - name: Test
         env:
           NODE_ENV: test
           JWT_SECRET: testsecret
           JWT_ISSUER: myapi
           JWT_AUDIENCE: myapi-clients
-        run: pnpm test -- --runInBand
+        run: npm test -- --runInBand
 
-      # 8) Build (dist/)
+      # 7) Build (dist/)
       - name: Build
-        run: pnpm build
+        run: npm run build
 
-      # 9) Sentry release (on main branch)
+      # 8) Sentry release (solo en main)
       - name: Sentry release
         if: github.ref == 'refs/heads/main'
         uses: getsentry/action-release@v1
@@ -71,5 +66,4 @@ jobs:
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         with:
           environment: production
-          # by default this uses the current commit SHA as the release version
-          # and associates commits thanks to checkout fetch-depth: 0
+          # Por defecto usará el SHA actual como versión del release

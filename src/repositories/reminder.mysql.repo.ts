@@ -6,9 +6,11 @@ import type {
     Notification as DomainNotif,
 } from '../models/reminder.model.js';
 
-// Tipos DB seguros para Prisma v6
-type DBReminder = Prisma.ReminderGetPayload<{}>;
-type DBNotification = Prisma.NotificationGetPayload<{}>;
+// ==== Tipos DB inferidos directamente del cliente ====
+// (evitamos Reminder/Notification y GetPayload que cambian entre versiones)
+type Awaited<T> = T extends Promise<infer U> ? U : T;
+type DBReminder = Awaited<ReturnType<typeof prisma.reminder.create>>;
+type DBNotification = Awaited<ReturnType<typeof prisma.notification.create>>;
 
 const toReminder = (r: DBReminder): DomainReminder => ({
     id: r.id,
@@ -54,7 +56,6 @@ export async function createReminder(input: {
         data: {
             userId: input.userId,
             title: input.title,
-            // Importantísimo: NO enviar undefined. Omitimos si no viene.
             ...(input.notes !== undefined && { notes: input.notes }),
             ...(input.category !== undefined && { category: input.category }),
             channel: (input.channel ?? 'EMAIL') as any,
@@ -65,7 +66,6 @@ export async function createReminder(input: {
             ...(input.nlgPayload !== undefined && { nlgPayload: input.nlgPayload as any }),
         },
     });
-
     return toReminder(row as DBReminder);
 }
 
@@ -112,7 +112,6 @@ export async function updateReminder(
         tz: string;
     }>
 ) {
-    // Igual: no empujar props con undefined
     const safeData: Prisma.ReminderUpdateInput = {
         ...(data.title !== undefined && { title: data.title }),
         ...(data.notes !== undefined && { notes: data.notes }),
@@ -154,7 +153,6 @@ export async function createNotif(input: {
 }
 
 export async function markNotifSent(id: string, providerId?: string | null) {
-    // Si viene undefined -> omitimos prop; si viene null -> escribimos null
     const data: Prisma.NotificationUpdateInput = {
         status: 'SENT' as any,
         sentAt: new Date(),
