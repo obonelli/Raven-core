@@ -1,6 +1,7 @@
 // src/middlewares/validate.ts
 import type { RequestHandler } from 'express';
 import type { ZodTypeAny, ZodObject, ZodRawShape } from 'zod';
+import type { ParsedQs } from 'qs';
 
 // Generic dictionary for parameters
 type ParamsDict = Record<string, string>;
@@ -14,7 +15,7 @@ export function validateBody(schema: ZodTypeAny): RequestHandler {
                 details: parsed.error.flatten(),
             });
         }
-        req.body = parsed.data;
+        req.body = parsed.data as unknown;
         next();
     };
 }
@@ -38,7 +39,9 @@ export function validateParams(schema: ZodObject<ZodRawShape>): RequestHandler {
  * Guarda el resultado en res.locals.validatedQuery y además
  * asigna req.query (cast) para que controladores existentes puedan leerlo.
  */
-export function validateQuery(schema: ZodObject<ZodRawShape> | ZodTypeAny): RequestHandler {
+export function validateQuery(
+    schema: ZodObject<ZodRawShape> | ZodTypeAny
+): RequestHandler {
     return (req, res, next) => {
         const parsed = schema.safeParse(req.query);
         if (!parsed.success) {
@@ -48,8 +51,8 @@ export function validateQuery(schema: ZodObject<ZodRawShape> | ZodTypeAny): Requ
             });
         }
         (res.locals as Record<string, unknown>).validatedQuery = parsed.data;
-        // Mantén compatibilidad con controladores que leen req.query:
-        req.query = parsed.data as any;
+        // Compatibilidad con controladores que leen req.query
+        req.query = parsed.data as unknown as ParsedQs;
         next();
     };
 }
@@ -83,7 +86,7 @@ export function validate(schema: ZodObject<ZodRawShape>): RequestHandler {
         if (data.params !== undefined) req.params = data.params;
         if (data.query !== undefined) {
             (res.locals as Record<string, unknown>).validatedQuery = data.query;
-            req.query = data.query as any;
+            req.query = data.query as unknown as ParsedQs;
         }
 
         next();

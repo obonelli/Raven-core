@@ -2,6 +2,7 @@
 import 'dotenv/config';
 import { Redis } from '@upstash/redis';
 import type { ConnectionOptions } from 'bullmq';
+import type { RedisOptions } from 'ioredis';
 
 const clean = (v?: string) =>
     v?.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
@@ -34,24 +35,26 @@ function urlToConnectionOptions(url: string): ConnectionOptions {
     const u = new URL(url);
     const isTls = u.protocol === 'rediss:';
 
-    const opts: ConnectionOptions = {
+    // Base como RedisOptions (ioredis)
+    const opts: RedisOptions = {
         host: u.hostname,
         port: u.port ? Number(u.port) : 6379,
-        // no username/password/tls aquí si están vacíos
     };
 
     if (u.username) {
-        // decode por si trae %40, etc.
-        (opts as any).username = decodeURIComponent(u.username);
+        (opts as { username?: string }).username = decodeURIComponent(u.username);
     }
     if (u.password) {
-        (opts as any).password = decodeURIComponent(u.password);
+        (opts as { password?: string }).password = decodeURIComponent(u.password);
     }
     if (isTls) {
-        (opts as any).tls = {};
+        // Evitamos importar TlsOptions, que puede chocar con tipos.
+        // Le asignamos un objeto vacío y dejamos que ioredis use defaults.
+        (opts as { tls?: unknown }).tls = {};
     }
 
-    return opts;
+    // Cast final (no `any`; pasamos por `unknown`)
+    return opts as unknown as ConnectionOptions;
 }
 
 /** Conexión para BullMQ como **ConnectionOptions** (sin string, sin union) */

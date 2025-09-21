@@ -13,7 +13,6 @@ export interface ParseOutput {
 }
 
 export async function parseReminder(input: ParseInput): Promise<ParseOutput> {
-    const tz = input.tz ?? 'America/Mexico_City'; // reservado por si luego ajustamos zonas
     const chronoRes = chrono.parse(input.text, new Date(), { forwardDate: true });
     const first = chronoRes[0];
 
