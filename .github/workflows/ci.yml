@@ -18,22 +18,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Checkout del repo (historial completo para asociar commits en Sentry)
+      # 1) Checkout (historial completo para Sentry)
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Setup Node y cache de npm
+      # 2) Setup Node + cache npm
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      # 3) Instalar dependencias (respeta package-lock.json)
+      # 3) Instalar dependencias (ci -> install si no hay lockfile)
       - name: Install deps
-        run: npm ci --no-audit --no-fund
         env:
           NODE_ENV: development
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Using npm ci (lockfile present)"
+            npm ci --no-audit --no-fund
+          else
+            echo "package-lock.json not found, falling back to npm install"
+            npm install --no-audit --no-fund
+          fi
 
       # 4) Generar Prisma Client
       - name: Generate Prisma
@@ -52,11 +59,11 @@ jobs:
           JWT_AUDIENCE: myapi-clients
         run: npm test -- --runInBand
 
-      # 7) Build (dist/)
+      # 7) Build
       - name: Build
         run: npm run build
 
-      # 8) Sentry release (solo en main)
+      # 8) Sentry release (solo main)
       - name: Sentry release
         if: github.ref == 'refs/heads/main'
         uses: getsentry/action-release@v1
@@ -66,4 +73,3 @@ jobs:
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         with:
           environment: production
-          # Por defecto usará el SHA actual como versión del release
