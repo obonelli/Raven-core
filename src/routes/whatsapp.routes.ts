@@ -1,14 +1,12 @@
 // src/routes/whatsapp.routes.ts
 import { Router, Request, Response } from 'express';
 import { createReminderFromText } from '../services/reminderFromText.service.js';
-import { sendWhatsAppText } from '../providers/whatsapp.js';
+import { sendWhatsAppText, markMessageRead } from '../providers/whatsapp.js';
 
 const router = Router();
 
-// Helper para normalizar query params a string
 type QueryParam = string | string[] | undefined;
-const qpToString = (v: QueryParam): string | undefined =>
-    Array.isArray(v) ? v[0] : v;
+const qpToString = (v: QueryParam): string | undefined => (Array.isArray(v) ? v[0] : v);
 
 /**
  * GET /webhooks/whatsapp
@@ -30,39 +28,41 @@ router.get('/webhooks/whatsapp', (req: Request, res: Response) => {
  * Receives WhatsApp notifications. Always respond 200 quickly.
  */
 router.post('/webhooks/whatsapp', async (req: Request, res: Response) => {
+    // responder rápido para evitar reintentos
+    res.sendStatus(200);
+
     try {
         const body = req.body;
-
-        // Meta may send different shapes; we guard before accessing
         const entries = body?.entry ?? [];
         for (const entry of entries) {
             const changes = entry?.changes ?? [];
             for (const change of changes) {
                 const value = change?.value;
+
+                // Mensajes entrantes
                 const messages = value?.messages ?? [];
-
                 for (const msg of messages) {
-                    const from = msg?.from as string | undefined; // E.164 like +521...
+                    const from = msg?.from as string | undefined;     // "5218332087965" (sin '+')
                     const type = msg?.type as string | undefined;
+                    const mid = msg?.id as string | undefined;
 
-                    // Only handle text for now
+                    if (mid) {
+                        // opcional: márcalo como leído
+                        markMessageRead(mid).catch(() => { });
+                    }
+
                     let text: string | undefined;
                     if (type === 'text') {
                         text = msg?.text?.body;
                     } else if (type === 'interactive') {
-                        // Optional: capture button/list replies
-                        text =
-                            msg?.interactive?.button_reply?.title ??
-                            msg?.interactive?.list_reply?.title;
+                        text = msg?.interactive?.button_reply?.title ?? msg?.interactive?.list_reply?.title;
                     }
-
                     if (!from || !text) continue;
 
-                    // Try to create a reminder from free text
                     const result = await createReminderFromText({
                         waid: from,
                         text,
-                        tz: 'America/Mexico_City', // you can switch to user-specific tz later
+                        tz: 'America/Mexico_City',
                         channel: 'WHATSAPP',
                     });
 
@@ -79,15 +79,16 @@ router.post('/webhooks/whatsapp', async (req: Request, res: Response) => {
                         );
                     }
                 }
+
+                // Status callbacks (delivered, read, failed...) — si quieres loguear:
+                // const statuses = value?.statuses ?? [];
+                // for (const st of statuses) {
+                //     // console.log('[wa status]', st.status, st.id);
+                // }
             }
         }
-
-        // Always reply 200 to stop retries
-        return res.sendStatus(200);
     } catch (err) {
         console.error('[whatsapp webhook] error', err);
-        // Still 200 to avoid massive retries
-        return res.sendStatus(200);
     }
 });
 
