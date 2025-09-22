@@ -5,18 +5,19 @@ import {
     listReminders,
     createNotif,
 } from '../repositories/reminder.mysql.repo.js';
-import { Queue } from 'bullmq';
-import { bullConnection } from '../config/redis.js';
+import { mkQueue } from '../config/bull.js';
 
-export const notifyQueue = new Queue('notify', { connection: bullConnection });
-export const recurQueue = new Queue('recur', { connection: bullConnection });
+type Channel = 'EMAIL' | 'WHATSAPP' | 'SMS';
+
+export const notifyQueue = mkQueue('notify');
+export const recurQueue = mkQueue('recur');
 
 export async function createReminderAndEnqueue(input: {
     userId: string;
     title: string;
     notes?: string;
     category?: string;
-    channel?: 'EMAIL' | 'WHATSAPP' | 'SMS';
+    channel?: Channel;
     dueAtISO: string;
     rrule?: string;
     tz: string;
@@ -41,22 +42,20 @@ export async function createReminderAndEnqueue(input: {
     const notif = await createNotif({
         reminderId: reminder.id,
         scheduledAt: new Date(reminder.dueAt),
-        channel: reminder.channel as 'EMAIL' | 'WHATSAPP' | 'SMS',
+        channel: reminder.channel as Channel,
     });
+
+    const delayMs = Math.max(0, new Date(reminder.dueAt).getTime() - Date.now());
 
     await notifyQueue.add(
         `notify:${String(reminder.channel).toLowerCase()}`,
         { reminderId: reminder.id, notificationId: notif.id },
-        { delay: Math.max(0, new Date(reminder.dueAt).getTime() - Date.now()) }
+        { delay: delayMs }
     );
 
     // If recurring, enqueue recur job (simplificado)
     if (reminder.rrule) {
-        await recurQueue.add(
-            'advance',
-            { reminderId: reminder.id },
-            { delay: 60_000 }
-        );
+        await recurQueue.add('advance', { reminderId: reminder.id }, { delay: 60_000 });
     }
 
     // Activate reminder

@@ -12,6 +12,9 @@ import { healthSchemas } from './components/health.schemas.js';
 import { authPaths } from './paths/auth.js';
 import { authSchemas } from './components/auth.schemas.js';
 
+import { remindersPaths } from './paths/reminders.js';
+import { remindersSchemas } from './components/reminders.schemas.js';
+
 export function buildOpenAPISpec() {
     const spec = {
         openapi: '3.0.3',
@@ -31,12 +34,14 @@ export function buildOpenAPISpec() {
             { name: 'Auth', description: 'JWT authentication (login/refresh/logout/me)' },
             { name: 'Users', description: 'User CRUD' },
             { name: 'UserDetails', description: 'Additional details for a user (MySQL)' },
+            { name: 'Reminders', description: 'Parse, create, list and manage reminders' },
         ],
         paths: {
             ...healthPaths,
             ...authPaths,
             ...usersPaths,
             ...userDetailsPaths,
+            ...remindersPaths,
         },
         components: {
             securitySchemes: {
@@ -57,6 +62,7 @@ export function buildOpenAPISpec() {
                 ...authSchemas,
                 ...usersSchemas,
                 ...userDetailsSchemas,
+                ...remindersSchemas,
             },
         },
     };
