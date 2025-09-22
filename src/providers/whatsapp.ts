@@ -1,12 +1,17 @@
 // src/providers/whatsapp.ts
 import { request } from 'undici';
 
+const NODE_ENV = process.env.NODE_ENV ?? 'development';
+const isTest = NODE_ENV === 'test';
+
 const API_VERSION = process.env.WHATSAPP_API_VERSION?.trim() || 'v23.0';
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID?.trim() || '';
 const TOKEN = process.env.WHATSAPP_TOKEN?.trim() || '';
 
-if (!PHONE_ID) throw new Error('Missing WHATSAPP_PHONE_ID');
-if (!TOKEN) throw new Error('Missing WHATSAPP_TOKEN');
+if (!isTest) {
+    if (!PHONE_ID) throw new Error('Missing WHATSAPP_PHONE_ID');
+    if (!TOKEN) throw new Error('Missing WHATSAPP_TOKEN');
+}
 
 const API = `https://graph.facebook.com/${API_VERSION}`;
 
@@ -16,6 +21,11 @@ type SendWhatsAppParams = { toWaid: string; text: string };
  * Enviar mensaje de texto simple por WhatsApp Cloud API
  */
 export async function sendWhatsApp({ toWaid, text }: SendWhatsAppParams) {
+    if (isTest) {
+        // no-op en test
+        return;
+    }
+
     const url = `${API}/${PHONE_ID}/messages`;
 
     const res = await request(url, {
@@ -50,6 +60,11 @@ export async function sendWhatsAppText(toWaid: string, text: string) {
  * Marcar un mensaje como leído (opcional)
  */
 export async function markMessageRead(messageId: string) {
+    if (isTest) {
+        // no-op en test
+        return;
+    }
+
     const url = `${API}/${PHONE_ID}/messages`;
     const res = await request(url, {
         method: 'POST',
