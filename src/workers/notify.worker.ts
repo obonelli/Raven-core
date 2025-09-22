@@ -1,10 +1,9 @@
-// src/workers/notify.worker.ts
 import type { Job } from 'bullmq';
 import { mkWorker, mkQueueEvents } from '../config/bull.js';
 import { prisma } from '../config/prisma.js';
 import { markNotifSent } from '../repositories/reminder.mysql.repo.js';
 import { sendEmail } from '../providers/email.js';
-// import { sendWhatsApp } from '../providers/whatsapp.js';
+import { sendWhatsApp } from '../providers/whatsapp.js'; // <-- NUEVO
 
 type NotifyJobData = { reminderId: string; notificationId: string };
 
@@ -14,10 +13,11 @@ async function handler(job: Job<NotifyJobData>) {
     const reminder = await prisma.reminder.findUnique({ where: { id: reminderId } });
     if (!reminder) return;
 
-    const user = await prisma.$queryRawUnsafe<{ email?: string }[]>(
-        'SELECT email FROM UserLookup WHERE userId = ? LIMIT 1',
+    // ahora pedimos email y waid (WhatsApp id / phone completo, ej 52181...)
+    const user = await prisma.$queryRawUnsafe<{ email?: string; waid?: string }[]>(
+        'SELECT email, waid FROM UserLookup WHERE userId = ? LIMIT 1',
         reminder.userId
-    ); // TODO: reemplazar por tu lookup real (HTTP/Dynamo/etc.)
+    );
 
     const title = reminder.title;
     const when = new Date(reminder.dueAt).toLocaleString('es-MX', { timeZone: reminder.tz });
@@ -28,8 +28,17 @@ async function handler(job: Job<NotifyJobData>) {
             subject: `Reminder: ${title}`,
             text: `${title}\n⏰ ${when}\nActions: reply "snooze 30" | "done"`,
         });
+    } else if (reminder.channel === 'WHATSAPP') {
+        const toWaid = user?.[0]?.waid; // ej "52181XXXXXXXX"
+        if (toWaid) {
+            await sendWhatsApp({
+                toWaid,
+                text: `⏰ Recordatorio: ${title}\n${when}`,
+            });
+        } else {
+            console.warn('[notify] no waid for user', reminder.userId);
+        }
     }
-    // else if (reminder.channel === 'WHATSAPP') { await sendWhatsApp(...); }
 
     await markNotifSent(notificationId, job.id?.toString() ?? null);
 }
