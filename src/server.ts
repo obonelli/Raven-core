@@ -25,6 +25,13 @@ const server = app.listen(port, '0.0.0.0', () => {
     logger.info(`API listening on http://localhost:${port}`);
 });
 
+// --- Dev-only: test Redis wire connection una sola vez ---
+if (env.NODE_ENV !== 'production') {
+    import('./debug/redis-wire-check.js')
+        .then(m => m.testRedisWireOnce())
+        .catch(err => logger.warn('[debug] redis-wire-check skipped', err));
+}
+
 // --- Graceful shutdown (Render rollouts send SIGTERM) ---
 const shutDown = (signal: string) => {
     logger.info(`${signal} received. Shutting down...`);
