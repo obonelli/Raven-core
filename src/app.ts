@@ -1,7 +1,7 @@
 // src/app.ts
 import 'dotenv/config';
 
-import express, { type Express } from 'express';
+import express, { type Express, type Request } from 'express';
 import { env } from './config/env.js';
 import routes from './routes/index.js';
 import { notFound } from './middlewares/not-found.js';
@@ -19,6 +19,8 @@ import { metricsMiddleware, metricsHandler } from './monitoring/metrics.js';
 // Security (helmet, CORS, rate limiting, slowdown)
 import { applySecurity, authLimiter } from './middlewares/security.js';
 
+type RawBodyRequest = Request & { rawBody?: Buffer };
+
 const app: Express = express();
 
 // ---- Sentry initialization ----
@@ -35,6 +37,17 @@ app.set('trust proxy', true);
 applySecurity(app);
 
 // ---- Body parsers ----
+// Raw body SOLO para webhook de WhatsApp (firma Meta)
+app.use(
+    '/api/webhooks/whatsapp',
+    express.json({
+        verify: (req, _res, buf) => {
+            (req as RawBodyRequest).rawBody = buf; // guarda cuerpo crudo
+        },
+    })
+);
+
+// Parser general para el resto de la API
 app.use(express.json());
 
 // ---- Dev-only bootstrap: ensure DynamoDB table ----
@@ -49,12 +62,8 @@ if (env.NODE_ENV !== 'production') {
 }
 
 // ---- Health endpoints ----
-app.get('/health', (_req, res) =>
-    res.json({ ok: true, env: env.NODE_ENV })
-);
-app.get('/api/ping', (_req, res) =>
-    res.json({ ok: true, message: 'pong 🏓' })
-);
+app.get('/health', (_req, res) => res.json({ ok: true, env: env.NODE_ENV }));
+app.get('/api/ping', (_req, res) => res.json({ ok: true, message: 'pong 🏓' }));
 
 // ---- Prometheus metrics ----
 if (process.env.METRICS_ENABLED === 'true') {
@@ -78,10 +87,8 @@ registerSwaggerDocs(app, spec, {
 app.get('/', (_req, res) => res.redirect('/docs'));
 
 // ---- Routes ----
-// Auth routes protected with stricter rate limiter
-app.use('/api/auth', authLimiter, authRoutes);
-// General API routes
-app.use('/api', routes);
+app.use('/api/auth', authLimiter, authRoutes); // Auth con rate limit más estricto
+app.use('/api', routes); // Rutas generales
 
 // ---- 404 handler ----
 app.use(notFound);
