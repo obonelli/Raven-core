@@ -4,6 +4,7 @@ import usersRouter from './users.routes.js';
 import userDetailsRouter from './userDetails.routes.js';
 import healthRouter from './health.routes.js';
 import remindersRouter from './reminders.routes.js';
+import whatsappRouter from './whatsapp.routes.js';
 
 const router: RouterType = Router();
 
@@ -11,5 +12,6 @@ router.use('/users', usersRouter);
 router.use('/users/:id/details', userDetailsRouter);
 router.use('/reminders', remindersRouter);
 router.use('/health', healthRouter);
+router.use('/', whatsappRouter);
 
 export default router;
