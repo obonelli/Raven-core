@@ -15,6 +15,10 @@ import { authSchemas } from './components/auth.schemas.js';
 import { remindersPaths } from './paths/reminders.js';
 import { remindersSchemas } from './components/reminders.schemas.js';
 
+// 👇 NEW: WhatsApp Webhooks
+import { whatsappPaths } from './paths/whatsapp.js';
+import { whatsappSchemas } from './components/whatsapp.schemas.js';
+
 export function buildOpenAPISpec() {
     const spec = {
         openapi: '3.0.3',
@@ -35,6 +39,7 @@ export function buildOpenAPISpec() {
             { name: 'Users', description: 'User CRUD' },
             { name: 'UserDetails', description: 'Additional details for a user (MySQL)' },
             { name: 'Reminders', description: 'Parse, create, list and manage reminders' },
+            { name: 'Webhooks', description: 'Meta WhatsApp webhook events' },
         ],
         paths: {
             ...healthPaths,
@@ -42,6 +47,7 @@ export function buildOpenAPISpec() {
             ...usersPaths,
             ...userDetailsPaths,
             ...remindersPaths,
+            ...whatsappPaths,
         },
         components: {
             securitySchemes: {
@@ -63,6 +69,7 @@ export function buildOpenAPISpec() {
                 ...usersSchemas,
                 ...userDetailsSchemas,
                 ...remindersSchemas,
+                ...whatsappSchemas,
             },
         },
     };
