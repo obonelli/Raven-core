@@ -46,6 +46,12 @@ export async function create(data: { name: string; email: string }): Promise<Use
         email: data.email,
         createdAt: now,
         updatedAt: now,
+
+        // defaults for new flags
+        googleId: null,
+        subscriptionActive: false,
+        whatsappNumber: null,
+        whatsappVerified: false,
     };
 
     await ddb.send(
@@ -58,24 +64,40 @@ export async function create(data: { name: string; email: string }): Promise<Use
     return user;
 }
 
-export async function update(
-    userId: string,
-    data: { name?: string; email?: string }
-): Promise<User> {
+/**
+ * Generic update for allowed fields.
+ */
+type UpdateInput = {
+    name?: string;
+    email?: string;
+    googleId?: string | null;
+    subscriptionActive?: boolean;
+    whatsappNumber?: string | null;
+    whatsappVerified?: boolean;
+};
+
+export async function update(userId: string, data: UpdateInput): Promise<User> {
     const sets: string[] = [];
     const names: Record<string, string> = {};
     const values: Record<string, unknown> = {};
 
-    if (data.name !== undefined) {
-        sets.push("#n = :n");
-        names["#n"] = "name";
-        values[":n"] = data.name;
-    }
-    if (data.email !== undefined) {
-        sets.push("#e = :e");
-        names["#e"] = "email";
-        values[":e"] = data.email;
-    }
+    const add = (attr: string, placeholder: string, value: unknown) => {
+        sets.push(`${placeholder} = :${attr}`);
+        names[placeholder] = attr;
+        values[`:${attr}`] = value;
+    };
+
+    if (data.name !== undefined) add("name", "#n", data.name);
+    if (data.email !== undefined) add("email", "#e", data.email);
+    if (data.googleId !== undefined) add("googleId", "#g", data.googleId);
+    if (data.subscriptionActive !== undefined)
+        add("subscriptionActive", "#s", data.subscriptionActive);
+    if (data.whatsappNumber !== undefined)
+        add("whatsappNumber", "#w", data.whatsappNumber);
+    if (data.whatsappVerified !== undefined)
+        add("whatsappVerified", "#wv", data.whatsappVerified);
+
+    // always update updatedAt
     sets.push("#u = :u");
     names["#u"] = "updatedAt";
     values[":u"] = new Date().toISOString();
@@ -102,4 +124,44 @@ export async function remove(userId: string): Promise<void> {
             ConditionExpression: "attribute_exists(userId)",
         })
     );
+}
+
+/* Convenience helpers */
+
+export async function upsertGoogleUser(params: {
+    email: string;
+    name: string;
+    googleId: string;
+}): Promise<User> {
+    const [existing] = await findByEmail(params.email);
+    if (existing) {
+        return update(existing.userId, {
+            name: params.name,
+            email: params.email,
+            googleId: params.googleId,
+        });
+    }
+    const created = await create({ name: params.name, email: params.email });
+    return update(created.userId, { googleId: params.googleId });
+}
+
+export async function setSubscriptionActive(
+    userId: string,
+    active: boolean
+): Promise<User> {
+    return update(userId, { subscriptionActive: active });
+}
+
+export async function setWhatsapp(
+    userId: string,
+    phone: string | null
+): Promise<User> {
+    return update(userId, { whatsappNumber: phone, whatsappVerified: false });
+}
+
+export async function setWhatsappVerified(
+    userId: string,
+    verified: boolean
+): Promise<User> {
+    return update(userId, { whatsappVerified: verified });
 }

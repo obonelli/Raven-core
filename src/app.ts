@@ -1,7 +1,8 @@
-// src/app.ts
 import 'dotenv/config';
 
 import express, { type Express, type Request } from 'express';
+import passport from 'passport';
+
 import { env } from './config/env.js';
 import routes from './routes/index.js';
 import { notFound } from './middlewares/not-found.js';
@@ -19,6 +20,9 @@ import { metricsMiddleware, metricsHandler } from './monitoring/metrics.js';
 // Security (helmet, CORS, rate limiting, slowdown)
 import { applySecurity, authLimiter } from './middlewares/security.js';
 
+// Google OAuth (usa rutas /auth/google y /auth/google/callback)
+import { mountGoogleAuth } from './auth/google.js';
+
 type RawBodyRequest = Request & { rawBody?: Buffer };
 
 const app: Express = express();
@@ -30,8 +34,9 @@ if (process.env.SENTRY_DSN) {
     app.use(Sentry.Handlers.tracingHandler());
 }
 
-// ---- Proxy trust (e.g. Render, Vercel, Nginx) ----
-app.set('trust proxy', true);
+// ---- Proxy trust (Render/Vercel/Nginx) ----
+// Lo maneja server.ts para no duplicar aquí
+// app.set('trust proxy', true);
 
 // ---- Security middlewares ----
 applySecurity(app);
@@ -49,6 +54,10 @@ app.use(
 
 // Parser general para el resto de la API
 app.use(express.json());
+
+// ---- Passport (OAuth) ----
+app.use(passport.initialize());
+mountGoogleAuth(app); // expone /auth/google y /auth/google/callback
 
 // ---- Dev-only bootstrap: ensure DynamoDB table ----
 if (env.NODE_ENV !== 'production') {
@@ -87,6 +96,7 @@ registerSwaggerDocs(app, spec, {
 app.get('/', (_req, res) => res.redirect('/docs'));
 
 // ---- Routes ----
+// Nota: Google OAuth está fuera de /api (queda en /auth/google*).
 app.use('/api/auth', authLimiter, authRoutes); // Auth con rate limit más estricto
 app.use('/api', routes); // Rutas generales
 
