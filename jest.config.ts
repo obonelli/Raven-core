@@ -5,7 +5,6 @@ const config: Config = {
     preset: 'ts-jest',
     testEnvironment: 'node',
 
-    // ✅ Ejecuta Jest en modo ESM para evitar el "Unexpected token export" de `jose`
     transform: {
         '^.+\\.(ts|tsx)$': [
             'ts-jest',
@@ -17,9 +16,11 @@ const config: Config = {
     },
     extensionsToTreatAsEsm: ['.ts'],
 
-    // Permite imports con sufijo .js en TS (NodeNext) → mapea al .ts
     moduleNameMapper: {
+        // permite imports con sufijo .js en TS (NodeNext) → mapea al .ts
         '^(\\.{1,2}/.*)\\.js$': '$1',
+        // 👇 mockea jose para evitar el error de ESM
+        '^jose$': '<rootDir>/src/__tests__/mocks/jose.ts',
     },
 
     testMatch: [
@@ -29,7 +30,6 @@ const config: Config = {
 
     setupFilesAfterEnv: ['<rootDir>/src/__tests__/setupTests.ts'],
 
-    // Mantén por defecto; al usar ESM ya no intentará ejecutar `jose` como CJS
     transformIgnorePatterns: ['/node_modules/'],
 
     collectCoverageFrom: [
