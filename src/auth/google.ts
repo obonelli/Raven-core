@@ -1,3 +1,4 @@
+// src/auth/google.ts
 import type { Express, Request, Response } from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
@@ -10,6 +11,7 @@ const {
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
     FRONT_CALLBACK_URL,
+    GOOGLE_CALLBACK_URL, // opcional: permitir override por env
 } = process.env;
 
 function toSeconds(span: string): number {
@@ -18,16 +20,22 @@ function toSeconds(span: string): number {
     const n = Number(m[1]); const u = m[2];
     return u === 's' ? n : u === 'm' ? n * 60 : u === 'h' ? n * 3600 : u === 'd' ? n * 86400 : n * 604800;
 }
-const REFRESH_TTL_SEC = toSeconds(REFRESH_EXPIRES_IN);
+const REFRESH_TTL_SEC = toSeconds(REFRESH_EXPIRES_IN as string);
 const refreshTokenKey = (userId: string, jti: string) => buildCacheKey('rt', userId, jti);
 
 export function mountGoogleAuth(app: Express) {
-    // 1) Configurar estrategia
+    const isTest = process.env.NODE_ENV === 'test';
+    const hasCreds = !!GOOGLE_CLIENT_ID && !!GOOGLE_CLIENT_SECRET;
+    if (isTest || !hasCreds) {
+        // No montes Google OAuth en tests o si faltan credenciales
+        return;
+    }
+
     passport.use(new GoogleStrategy(
         {
             clientID: GOOGLE_CLIENT_ID!,
             clientSecret: GOOGLE_CLIENT_SECRET!,
-            callbackURL: '/auth/google/callback',
+            callbackURL: GOOGLE_CALLBACK_URL || '/auth/google/callback',
         },
         async (_at, _rt, profile, done) => {
             try {
@@ -44,14 +52,12 @@ export function mountGoogleAuth(app: Express) {
 
     app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-    // 2) Callback: emitir tokens como en /login
     app.get(
         '/auth/google/callback',
         passport.authenticate('google', { session: false, failureRedirect: '/auth/failure' }),
         async (req: Request, res: Response) => {
             const u = req.user as { userId: string; email?: string; role?: string };
 
-            // Construir payload SIN undefined
             const base = {
                 sub: String(u.userId),
                 ...(u.email ? { email: u.email } : {}),
@@ -60,7 +66,6 @@ export function mountGoogleAuth(app: Express) {
 
             const jti = crypto.randomUUID();
 
-            // Firmar tokens con tus helpers
             const accessToken = await signAccessToken(base);
             const refreshToken = await signRefreshToken({ ...base, jti });
 
