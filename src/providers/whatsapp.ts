@@ -41,7 +41,6 @@ export async function sendWhatsApp({ toWaid, text }: SendWhatsAppParams) {
 
     if (res.statusCode >= 300) {
         const body = await res.body.text();
-        // eslint-disable-next-line no-console
         console.error('[whatsapp.send] error', res.statusCode, body);
         throw new Error(`WhatsApp API ${res.statusCode}`);
     }
@@ -70,7 +69,6 @@ export async function markMessageRead(messageId: string) {
 
     if (res.statusCode >= 300) {
         const body = await res.body.text();
-        // eslint-disable-next-line no-console
         console.error('[whatsapp.read] error', res.statusCode, body);
     }
 }
