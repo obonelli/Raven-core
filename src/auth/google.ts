@@ -8,11 +8,22 @@ import { signAccessToken, signRefreshToken, REFRESH_EXPIRES_IN } from '../config
 import { buildCacheKey, rSet, REDIS_TTL } from '../config/redis.js';
 
 const {
+    NODE_ENV,
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
+    GOOGLE_CALLBACK_URL,
     FRONT_CALLBACK_URL,
-    GOOGLE_CALLBACK_URL, // opcional: permitir override por env
+    FRONT_CALLBACK_URL_DEV,
+    FRONT_CALLBACK_URL_PROD,
 } = process.env;
+
+const isTest = NODE_ENV === 'test';
+const isProd = NODE_ENV === 'production';
+
+// Front callback final (elige por entorno; permite override con FRONT_CALLBACK_URL)
+const FRONT_CB =
+    FRONT_CALLBACK_URL ??
+    (isProd ? FRONT_CALLBACK_URL_PROD : FRONT_CALLBACK_URL_DEV);
 
 function toSeconds(span: string): number {
     const m = /^(\d+)([smhdw])$/.exec(span || '');
@@ -24,31 +35,30 @@ const REFRESH_TTL_SEC = toSeconds(REFRESH_EXPIRES_IN as string);
 const refreshTokenKey = (userId: string, jti: string) => buildCacheKey('rt', userId, jti);
 
 export function mountGoogleAuth(app: Express) {
-    const isTest = process.env.NODE_ENV === 'test';
     const hasCreds = !!GOOGLE_CLIENT_ID && !!GOOGLE_CLIENT_SECRET;
-    if (isTest || !hasCreds) {
-        // No montes Google OAuth en tests o si faltan credenciales
-        return;
-    }
+    if (isTest || !hasCreds) return;
 
-    passport.use(new GoogleStrategy(
-        {
-            clientID: GOOGLE_CLIENT_ID!,
-            clientSecret: GOOGLE_CLIENT_SECRET!,
-            callbackURL: GOOGLE_CALLBACK_URL || '/auth/google/callback',
-        },
-        async (_at, _rt, profile, done) => {
-            try {
-                const email = profile.emails?.[0]?.value;
-                const name = profile.displayName || 'User';
-                if (!email) return done(new Error('Google returned no email'));
-                const user = await upsertGoogleUser({ email, name, googleId: profile.id });
-                done(null, user);
-            } catch (e) {
-                done(e as Error);
+    passport.use(
+        new GoogleStrategy(
+            {
+                clientID: GOOGLE_CLIENT_ID!,
+                clientSecret: GOOGLE_CLIENT_SECRET!,
+                // Debe coincidir con lo registrado en Google Cloud Console
+                callbackURL: GOOGLE_CALLBACK_URL || '/auth/google/callback',
+            },
+            async (_at, _rt, profile, done) => {
+                try {
+                    const email = profile.emails?.[0]?.value;
+                    const name = profile.displayName || 'User';
+                    if (!email) return done(new Error('Google returned no email'));
+                    const user = await upsertGoogleUser({ email, name, googleId: profile.id });
+                    done(null, user);
+                } catch (e) {
+                    done(e as Error);
+                }
             }
-        }
-    ));
+        )
+    );
 
     app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
@@ -65,23 +75,26 @@ export function mountGoogleAuth(app: Express) {
             };
 
             const jti = crypto.randomUUID();
-
             const accessToken = await signAccessToken(base);
             const refreshToken = await signRefreshToken({ ...base, jti });
 
-            await rSet(refreshTokenKey(String(u.userId), jti), true, Math.max(REFRESH_TTL_SEC, REDIS_TTL));
+            await rSet(
+                refreshTokenKey(String(u.userId), jti),
+                true,
+                Math.max(REFRESH_TTL_SEC, REDIS_TTL)
+            );
 
-            if (FRONT_CALLBACK_URL) {
-                const url = new URL(FRONT_CALLBACK_URL);
-                const hash = new URLSearchParams({ access: accessToken, refresh: refreshToken }).toString();
-                return res.redirect(`${url.toString()}#${hash}`);
+            if (!FRONT_CB) {
+                return res.json({
+                    user: { id: u.userId, email: u.email, role: u.role },
+                    accessToken,
+                    refreshToken,
+                });
             }
 
-            return res.json({
-                user: { id: u.userId, email: u.email, role: u.role },
-                accessToken,
-                refreshToken,
-            });
+            const url = new URL(FRONT_CB);
+            const hash = new URLSearchParams({ access: accessToken, refresh: refreshToken }).toString();
+            return res.redirect(`${url.toString()}#${hash}`);
         }
     );
 
