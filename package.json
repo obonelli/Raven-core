@@ -10,7 +10,8 @@
     "test": "jest --runInBand --config jest.config.ts",
     "seed:dev:user": "tsx scripts/seed-dev-user.ts",
     "test:email": "tsx scripts/test-email.ts",
-    "worker:notify": "tsx src/workers/notify.worker.ts",
+    "worker:notify:dev": "tsx src/workers/notify.worker.ts",
+    "worker:notify": "node dist/workers/notify.worker.js",
     "postinstall": "npx prisma generate"
   },
   "type": "module",
