@@ -8,8 +8,8 @@ import { requireAuth } from '../middlewares/requireAuth.js';
 const r: RouterType = Router({ mergeParams: true });
 
 r.get('/', requireAuth, validateParams(IdParamSchema), controller.getUserDetails);
-r.post('/', requireAuth, validateParams(IdParamSchema), validateBody(CreateUserDetailsSchema), controller.createUserDetails);
-r.patch('/', requireAuth, validateParams(IdParamSchema), validateBody(PatchUserDetailsSchema), controller.patchUserDetails);
+r.post('/', requireAuth, validateParams(IdParamSchema), validateBody(CreateUserDetailsSchema.shape.body), controller.createUserDetails);
+r.patch('/', requireAuth, validateParams(IdParamSchema), validateBody(PatchUserDetailsSchema.shape.body), controller.patchUserDetails);
 r.delete('/', requireAuth, validateParams(IdParamSchema), controller.deleteUserDetails);
 
 export default r;
