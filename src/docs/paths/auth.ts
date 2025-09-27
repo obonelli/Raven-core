@@ -91,6 +91,7 @@ export const authPaths = {
         get: {
             tags: ['Auth'],
             summary: 'Get current authenticated user (requires Bearer access token)',
+            security: [{ bearerAuth: [] }], // <-- necesario para que Swagger envíe Authorization
             responses: {
                 '200': {
                     description: 'Current user',

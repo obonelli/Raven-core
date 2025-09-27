@@ -1,3 +1,4 @@
+// src/routes/auth.route.ts
 import { Router, type Router as RouterType } from 'express';
 import { login, refresh, logout, me } from '../controllers/auth.controller.js';
 import { requireAuth } from '../middlewares/requireAuth.js';

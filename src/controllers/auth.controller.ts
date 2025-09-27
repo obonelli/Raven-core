@@ -27,6 +27,19 @@ function toSeconds(span: string): number {
 const REFRESH_TTL_SEC = toSeconds(REFRESH_EXPIRES_IN);
 const refreshTokenKey = (userId: string, jti: string) => buildCacheKey('rt', userId, jti);
 
+// ------- helpers -------
+type ReqWithAuth = Request & {
+    auth?: { sub?: string | number; email?: string; role?: string };
+    userId?: string | number;
+};
+
+function getUserId(req: Request): string {
+    const r = req as ReqWithAuth;
+    const raw = r.auth?.sub ?? r.userId;
+    return typeof raw === 'string' ? raw : typeof raw === 'number' ? String(raw) : '';
+}
+
+// ------- controllers -------
 export async function login(req: Request, res: Response, next: NextFunction) {
     try {
         const { email, password } = req.body as { email: string; password: string };
@@ -124,6 +137,11 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function me(req: Request, res: Response) {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    return res.json({ user: req.user });
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const user = await usersRepo.getById(userId);
+    if (!user) return res.status(404).json({ error: 'NotFound', message: 'User not found' });
+
+    return res.json({ user });
 }
