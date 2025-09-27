@@ -15,9 +15,11 @@ import { authSchemas } from './components/auth.schemas.js';
 import { remindersPaths } from './paths/reminders.js';
 import { remindersSchemas } from './components/reminders.schemas.js';
 
-// 👇 NEW: WhatsApp Webhooks
 import { whatsappPaths } from './paths/whatsapp.js';
 import { whatsappSchemas } from './components/whatsapp.schemas.js';
+
+import { verifyPaths } from './paths/verify.js';
+import { verifySchemas } from './components/verify.schemas.js';
 
 export function buildOpenAPISpec() {
     const spec = {
@@ -40,6 +42,7 @@ export function buildOpenAPISpec() {
             { name: 'UserDetails', description: 'Additional details for a user (MySQL)' },
             { name: 'Reminders', description: 'Parse, create, list and manage reminders' },
             { name: 'Webhooks', description: 'Meta WhatsApp webhook events' },
+            { name: 'Verify', description: 'Phone verification (OTP via WhatsApp/SMS)' },
         ],
         paths: {
             ...healthPaths,
@@ -48,6 +51,7 @@ export function buildOpenAPISpec() {
             ...userDetailsPaths,
             ...remindersPaths,
             ...whatsappPaths,
+            ...verifyPaths,
         },
         components: {
             securitySchemes: {
@@ -70,6 +74,7 @@ export function buildOpenAPISpec() {
                 ...userDetailsSchemas,
                 ...remindersSchemas,
                 ...whatsappSchemas,
+                ...verifySchemas,
             },
         },
     };
